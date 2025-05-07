@@ -1,0 +1,3 @@
+export const supaUrl = 'https://nkorqkyiytalpxyjgbjq.supabase.co';
+
+export const anonkey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rb3Jxa3lpeXRhbHB4eWpnYmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1MzkzMjMsImV4cCI6MjA2MjExNTMyM30.aDmc_T4h8a8MMv4TbKXbWvBiRJc76udIHeU9MSUnLnU';
