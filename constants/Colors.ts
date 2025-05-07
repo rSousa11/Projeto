@@ -5,4 +5,5 @@ export default{
     azulbebe:'#85dce7',
     branco:'#ffffff',
     preto:'#030507',
+    cinza:'#a0a0a0',
 };

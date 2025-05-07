@@ -5,7 +5,8 @@ import colors from '@/constants/colors';
 import { supabase } from '@/lib/supabase';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
 
 export default function Login() {
 
@@ -33,49 +34,69 @@ export default function Login() {
   }
 
   return(
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.logoText}>
-          We<Text style={{color: colors.azulbebe}}>Segno</Text>
-        </Text>
-        <Text style={styles.slogan}>
-          Juntos somos Muitos
-        </Text>
-      </View>
-
-      <View style={styles.form}>
-        <View>
-          <Text style= {styles.label}>Email</Text>
-          <TextInput 
-            placeholder='Escreva o seu Email...'
-            style= {styles.input}
-            value={email}
-            onChangeText={setEmail}
+    <SafeAreaView style={{ flex: 1 }}>
+      
+      
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          
+          <Image
+            source={require("@/assets/images/onboarding.png")}
+            resizeMode="cover"
+            style={styles.image}
           />
+          
+          
+          <View style={styles.header}>
+            <Text style={styles.logoText}>
+              We<Text style={{color: colors.azulbebe}}>Segno</Text>
+            </Text>
+            <Text style={styles.slogan}>
+              Juntos somos Muitos
+            </Text>
+          </View>
+
+          <View style={styles.form}>
+            <View>
+              
+              <TextInput
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholderTextColor= "#030507"
+                style={styles.input}
+              />
+
+              <TextInput
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                placeholderTextColor="#030507"
+                style={styles.input}
+              />
+            </View>
+
+            <TouchableOpacity onPress={handleSignIn} style={styles.button} activeOpacity={0.6}>
+              <Text style={styles.buttonText}>
+                {loading ? 'A carregar...' : 'Entrar'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.link}>
+              Ainda não tem conta?{' '}
+              <Link href='/(auth)/signup/page' asChild>
+                <Text style={styles.linkAction}>Regista-te</Text>
+              </Link>
+            </Text>
+
+            
+          </View>
         </View>
-
-        <View>
-          <Text style= {styles.label}>Password</Text>
-          <TextInput 
-            placeholder='Escreva a sua password...'
-            style= {styles.input}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
-
-        <Pressable style={styles.button} onPress={handleSignIn}>
-          <Text style={styles.buttonText}>
-            {loading ? 'A carregar...': 'Entrar'}
-          </Text>
-        </Pressable>
-
-        <Link href='/(auth)/signup/page' style={styles.link}>
-          <Text>Ainda não tem conta? Registe-se</Text>
-        </Link>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   )
   
 }
@@ -83,24 +104,28 @@ export default function Login() {
 const styles = StyleSheet.create({
   container:{
     flex:1,
-    paddingTop: '100%',
+    paddingTop: 0,
     backgroundColor: colors.azulescuro
   },
   header:{
+    alignItems:'center',
     paddingLeft:14,
     paddingRight:14,
     
   },
   logoText:{
-    fontSize: 50,
+    fontSize: 60,
     fontWeight: 'bold',
     color: colors.branco,
     marginBottom:10,
+    marginTop:50,
+    alignItems:'center',
   },
   slogan:{
-    fontSize: 38,
+    fontSize: 25,
     color: colors.branco,
     marginBottom: 34,
+    textAlign:'center',
   },
   form:{
     flex:1,
@@ -110,6 +135,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingLeft:14,
     paddingRight:14,
+    minHeight: '100%',
   },
   label:{
     color:colors.preto,
@@ -137,10 +163,28 @@ const styles = StyleSheet.create({
     color:colors.branco,
     fontWeight:'bold',
   },
-  link:{
-    marginTop:16,
-    textAlign:'center',
+  
+  image: {
+    width: '100%',
+    height: 300,
+    resizeMode: 'cover', // Enche o espaço e corta se necessário
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
 
+  link: {
+    marginTop: 16,
+    textAlign: 'center',
+    color: colors.preto,
+  },
+
+  linkAction: {
+    color: colors.azul, // ou '#007bff' por exemplo
+    textDecorationLine: 'underline',
+    fontWeight: 'bold',
+  },
+  
+  
+  
 
 });

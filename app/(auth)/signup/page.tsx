@@ -69,6 +69,7 @@ export default function Signup() {
                 style= {styles.input}
                 value = {name}
                 onChangeText={setName}
+                placeholderTextColor= "#a0a0a0"
               />
             </View>
 
@@ -80,6 +81,7 @@ export default function Signup() {
                 style= {styles.input}
                 value={email}
                 onChangeText={setEmail}
+                placeholderTextColor="#a0a0a0"
               />
             </View>
 
@@ -93,6 +95,7 @@ export default function Signup() {
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
+                placeholderTextColor="#a0a0a0"
               />
             </View>
 
