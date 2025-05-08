@@ -1,63 +1,39 @@
-import { supabase } from "@/lib/supabase"
-import { Stack, router } from "expo-router"
-import { useEffect } from "react"
-import { AuthProvider, useAuth } from '../contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { Slot, router, usePathname } from 'expo-router';
+import { useEffect } from 'react';
 
-export default function RootLayout(){
-  return(
+export default function RootLayout() {
+  return (
     <AuthProvider>
       <MainLayout />
     </AuthProvider>
-  )
+  );
 }
 
 function MainLayout() {
-  const{ setAuth } = useAuth()
+  const { setAuth } = useAuth();
+  const pathname = usePathname();
 
-  useEffect(()=> {
-    supabase.auth.onAuthStateChange((_event, session)=>{
-      
-      if(session){
-        setAuth(session.user)
-        router.replace('/(panel)/profile/page')
-        return;
+  useEffect(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuth(session.user);
+        if (!pathname.startsWith('/(tabs)')) {
+          router.replace('/(tabs)');
+        }
+      } else {
+        setAuth(null);
+        if (!pathname.startsWith('/(auth)')) {
+          router.replace('/(auth)/signin/page');
+        }
       }
+    });
 
-      setAuth(null);
-      router.replace('/(auth)/signin/page')
+    return () => {
+      listener?.subscription?.unsubscribe();
+    };
+  }, []);
 
-    })
-  }, [])
-
-  return(
-    <Stack>
-      <Stack.Screen 
-        name= "index" 
-        options={{ headerShown : false }} 
-      
-      /> 
-
-      <Stack.Screen 
-        name= "(auth)/signin/page" 
-        options={{ headerShown : false }} 
-      
-      /> 
-
-      <Stack.Screen 
-        name= "(auth)/signup/page" 
-        options={{ headerShown : false }} 
-      
-      />
-
-      <Stack.Screen 
-        name= "(panel)/profile/page" 
-        options={{ headerShown : false }} 
-      
-      /> 
-    </Stack>
-
-    
-  )
+  return <Slot />;
 }
-
-
