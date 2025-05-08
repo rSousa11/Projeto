@@ -71,26 +71,28 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="search"
+        name="repertorio"
         options={{
-          title: "Search",
+          title: "Repertorio",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.search} title="Search" />
+            <TabIcon focused={focused} icon={icons.musica} title="Repertório" />
           ),
         }}
       />
 
       <Tabs.Screen
-        name="saved"
+        name="calendario"
         options={{
-          title: "Saved",
+          title: "calendario",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.save} title="Save" />
+            <TabIcon focused={focused} icon={icons.calendario} title="Calendário" />
           ),
         }}
       />
+
+      
 
       <Tabs.Screen
         name="profile"
@@ -98,7 +100,7 @@ export default function TabsLayout() {
           title: "Profile",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={icons.person} title="Profile" />
+            <TabIcon focused={focused} icon={icons.perfil} title="Perfil" />
           ),
         }}
       />
