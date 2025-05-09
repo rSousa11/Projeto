@@ -13,8 +13,6 @@ import {
   View,
 } from 'react-native';
 
-const ADMIN_ID = 'c1cfa565-8491-4c31-9ab2-e212458a1429'; // Substituir pelo teu ID
-
 const normalizarNomeFicheiro = (nomeOriginal: string): string => {
   return nomeOriginal
     .normalize('NFD')
@@ -26,17 +24,37 @@ const normalizarNomeFicheiro = (nomeOriginal: string): string => {
 const Repertorio = () => {
   const [uploading, setUploading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [pdfs, setPdfs] = useState<{ name: string }[]>([]);
   const [loadingPdfs, setLoadingPdfs] = useState(true);
 
   useEffect(() => {
-    const loadSession = async () => {
+    const loadSessionAndRole = async () => {
       const { data, error } = await supabase.auth.getSession();
-      if (error) console.error(error);
-      setSession(data?.session ?? null);
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const sessao = data?.session;
+      setSession(sessao ?? null);
+
+      if (sessao?.user) {
+        const { data: perfil, error: erroPerfil } = await supabase
+          .from('users') // ou 'profiles' se for esse o nome correto
+          .select('role')
+          .eq('id', sessao.user.id)
+          .single();
+
+        if (erroPerfil) {
+          console.error('Erro ao obter role do utilizador:', erroPerfil);
+        } else {
+          setRole(perfil?.role ?? null);
+        }
+      }
     };
 
-    loadSession();
+    loadSessionAndRole();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
@@ -67,7 +85,7 @@ const Repertorio = () => {
   }, []);
 
   const handleUploadPDF = async () => {
-    if (!session || session.user.id !== ADMIN_ID) {
+    if (role !== 'admin') {
       Alert.alert('Apenas o administrador pode enviar PDFs.');
       return;
     }
@@ -135,7 +153,7 @@ const Repertorio = () => {
   };
 
   const handleDeletePDF = async (name: string) => {
-    if (!session || session.user.id !== ADMIN_ID) {
+    if (role !== 'admin') {
       Alert.alert('Apenas o administrador pode remover PDFs.');
       return;
     }
@@ -171,13 +189,13 @@ const Repertorio = () => {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
       <View style={{ padding: 20, flex: 1 }}>
         <Text style={{ fontSize: 26, fontWeight: 'bold', marginBottom: 20, color: '#2c3e50' }}>
-           Repositório de Obras
+          📚 Repositório de PDFs
         </Text>
 
         {uploading ? (
           <ActivityIndicator size="large" />
         ) : (
-          session?.user?.id === ADMIN_ID && (
+          role === 'admin' && (
             <TouchableOpacity
               onPress={handleUploadPDF}
               style={{
@@ -194,7 +212,7 @@ const Repertorio = () => {
         )}
 
         <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10, color: '#34495e' }}>
-          Obras disponíveis:
+          PDFs disponíveis:
         </Text>
 
         {loadingPdfs ? (
@@ -231,7 +249,7 @@ const Repertorio = () => {
                   </Text>
                 </TouchableOpacity>
 
-                {session?.user?.id === ADMIN_ID && (
+                {role === 'admin' && (
                   <TouchableOpacity
                     onPress={() => handleDeletePDF(item.name)}
                     style={{

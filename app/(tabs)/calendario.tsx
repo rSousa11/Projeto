@@ -1,99 +1,104 @@
-import { supabase } from '@/lib/supabase'
-import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Button, FlatList, Text, TextInput, View } from 'react-native'
-import { Calendar } from 'react-native-calendars'
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Button, FlatList, Text, TextInput, View } from 'react-native';
+import { Calendar } from 'react-native-calendars';
+import { supabase } from '../../lib/supabase'; // atualiza o path se necessário
 
 const Calendario = () => {
-  const [eventosMarcados, setEventosMarcados] = useState({})
-  const [eventosLista, setEventosLista] = useState([])
-  const [selectedDate, setSelectedDate] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [eventosMarcados, setEventosMarcados] = useState({});
+  const [eventosLista, setEventosLista] = useState([]);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [loading, setLoading] = useState(true);
 
   // Admin form state
-  const [titulo, setTitulo] = useState('')
-  const [descricao, setDescricao] = useState('')
-  const [data, setData] = useState('')
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [data, setData] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    verificarSeEAdmin()
-    fetchEventos()
+    verificarSeEAdmin();
+    fetchEventos();
 
-    // Subscrever alterações
     const subscription = supabase
       .channel('public:eventos')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, fetchEventos)
-      .subscribe()
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(subscription)
-    }
-  }, [])
+      supabase.removeChannel(subscription);
+    };
+  }, []);
 
   const verificarSeEAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
     const { data, error } = await supabase
-      .from('profiles') // ou a tabela onde guardas roles
+      .from('users')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .single();
+
+    if (error) {
+      console.error('Erro ao verificar role:', error.message);
+      return;
+    }
 
     if (data?.role === 'admin') {
-      setIsAdmin(true)
+      setIsAdmin(true);
     }
-  }
+  };
 
   const fetchEventos = async () => {
-    setLoading(true)
-    const { data, error } = await supabase.from('eventos').select('*')
+    setLoading(true);
+    const { data, error } = await supabase.from('eventos').select('*');
+
     if (error) {
-      console.error(error)
-      setLoading(false)
-      return
+      console.error(error);
+      setLoading(false);
+      return;
     }
 
-    const marcados = {}
+    const marcados = {};
     data.forEach(ev => {
       marcados[ev.data] = {
         marked: true,
         dotColor: 'blue'
-      }
-    })
+      };
+    });
 
-    setEventosMarcados(marcados)
-    setEventosLista(data)
-    setLoading(false)
-  }
+    setEventosMarcados(marcados);
+    setEventosLista(data);
+    setLoading(false);
+  };
 
   const adicionarEvento = async () => {
     if (!titulo || !data) {
-      Alert.alert('Erro', 'Preenche o título e a data (YYYY-MM-DD)')
-      return
+      Alert.alert('Erro', 'Preenche o título e a data (YYYY-MM-DD)');
+      return;
     }
 
     const { error } = await supabase.from('eventos').insert([
       { titulo, descricao, data }
-    ])
+    ]);
 
     if (error) {
-      Alert.alert('Erro', 'Não foi possível adicionar o evento')
+      Alert.alert('Erro', 'Não foi possível adicionar o evento');
     } else {
-      setTitulo('')
-      setDescricao('')
-      setData('')
+      setTitulo('');
+      setDescricao('');
+      setData('');
     }
-  }
+  };
 
   const removerEvento = async (id: string) => {
-    const { error } = await supabase.from('eventos').delete().eq('id', id)
+    const { error } = await supabase.from('eventos').delete().eq('id', id);
     if (error) {
-      Alert.alert('Erro', 'Não foi possível remover o evento')
+      Alert.alert('Erro', 'Não foi possível remover o evento');
     }
-  }
+  };
 
-  if (loading) return <ActivityIndicator size="large" style={{ marginTop: 100 }} />
+  if (loading) return <ActivityIndicator size="large" style={{ marginTop: 100 }} />;
 
   return (
     <View style={{ flex: 1, padding: 20, paddingTop: 50 }}>
@@ -135,7 +140,7 @@ const Calendario = () => {
         </>
       )}
     </View>
-  )
-}
+  );
+};
 
-export default Calendario
+export default Calendario;
