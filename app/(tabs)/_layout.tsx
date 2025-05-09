@@ -11,18 +11,32 @@ function TabIcon({ focused, icon, title }: any) {
         source={images.highlight}
         resizeMode="cover"
         style={{
-          marginTop:31,
+          marginTop: 31,
           width: 120,
           height: 70,
           borderRadius: 9999,
-          overflow: 'hidden',
-          flexDirection: 'row',
-          justifyContent: 'center',
-          alignItems: 'center',
-      }}
+          overflow: "hidden",
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
       >
-        <Image source={icon} style={{ width: 25, height: 25, tintColor: 'black', marginTop:0 }} />
-        <Text style={{ color: 'black', fontSize: 18, fontWeight: '600', marginLeft: 3 }}>
+        <Image
+          source={icon}
+          style={{
+            width: 25,
+            height: 25,
+            tintColor: "black",
+          }}
+        />
+        <Text
+          style={{
+            color: "black",
+            fontSize: 18,
+            fontWeight: "600",
+            marginLeft: 3,
+          }}
+        >
           {title}
         </Text>
       </ImageBackground>
@@ -30,12 +44,19 @@ function TabIcon({ focused, icon, title }: any) {
   }
 
   return (
-    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <Image source={icon} style={{ width: 25, height: 25, tintColor: 'white', marginTop:31 }} />
+    <View style={{ justifyContent: "center", alignItems: "center" }}>
+      <Image
+        source={icon}
+        style={{
+          width: 25,
+          height: 25,
+          tintColor: "white",
+          marginTop: 31,
+        }}
+      />
     </View>
   );
 }
-
 
 export default function TabsLayout() {
   return (
@@ -43,19 +64,19 @@ export default function TabsLayout() {
       screenOptions={{
         tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: '#0F0D23',
+          backgroundColor: "#0F0D23",
           borderRadius: 50,
           marginHorizontal: 10,
           marginBottom: 50,
-          height: 70, 
-          position: 'absolute',
-          overflow: 'hidden',
+          height: 70,
+          position: "absolute",
+          overflow: "hidden",
           borderWidth: 1,
-          borderColor: '#0F0D23',
+          borderColor: "#0F0D23",
         },
         tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: "center",
+          alignItems: "center",
         },
       }}
     >
@@ -73,7 +94,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="repertorio"
         options={{
-          title: "Repertorio",
+          title: "Repertório",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon={icons.musica} title="Repertório" />
@@ -84,7 +105,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="calendario"
         options={{
-          title: "calendario",
+          title: "Calendário",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon={icons.calendario} title="Calendário" />
@@ -92,12 +113,10 @@ export default function TabsLayout() {
         }}
       />
 
-      
-
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: "Perfil",
           headerShown: false,
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} icon={icons.perfil} title="Perfil" />

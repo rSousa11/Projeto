@@ -1,12 +1,20 @@
-
-
-
 import colors from '@/constants/colors';
 import { supabase } from '@/lib/supabase';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -22,7 +30,7 @@ export default function Login() {
     });
 
     if (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Erro', error.message);
       setLoading(false);
       return;
     }
@@ -32,54 +40,58 @@ export default function Login() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.branco }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          style={{ flex: 1 }}
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
+          style={{ backgroundColor: colors.branco }}
         >
           <View style={styles.container}>
-            <Image
-              source={require('@/assets/images/bg.png')}
-              resizeMode="cover"
-              style={styles.image}
-            />
+            <View style={styles.topBackground}>
+              
+              <Image 
+                source={require('@/assets/images/bg.png')}
+                resizeMode="cover"
+                style={styles.image}
+              />
 
-            <View style={styles.header}>
-              <Text style={styles.logoText}>
-                We<Text style={{ color: colors.azulbebe }}>Segno</Text>
-              </Text>
-              <Text style={styles.slogan}>Juntos somos Muitos</Text>
+              <View style={styles.header}>
+                <Text style={styles.logoText}>
+                  We<Text style={{ color: colors.azulbebe }}>Segno</Text>
+                </Text>
+                <Text style={styles.slogan}>Juntos somos Muitos</Text>
+              </View>
             </View>
 
             <View style={styles.form}>
               <View>
+                <Text style={styles.label}>Email</Text>
                 <TextInput
-                  placeholder="Email"
+                  placeholder="Escreva o seu Email..."
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  placeholderTextColor="#030507"
+                  placeholderTextColor="#a0a0a0"
                   style={styles.input}
                 />
 
+                <Text style={styles.label}>Password</Text>
                 <TextInput
-                  placeholder="Password"
+                  placeholder="Escreva a sua password..."
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  placeholderTextColor="#030507"
+                  placeholderTextColor="#a0a0a0"
                   style={styles.input}
                 />
               </View>
 
-              <TouchableOpacity onPress={handleSignIn} style={styles.button} activeOpacity={0.6}>
+              <TouchableOpacity onPress={handleSignIn} style={styles.button} activeOpacity={0.7}>
                 <Text style={styles.buttonText}>
                   {loading ? 'A carregar...' : 'Entrar'}
                 </Text>
@@ -102,71 +114,81 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 0,
+    backgroundColor: colors.branco,
+  },
+  topBackground: {
     backgroundColor: colors.azulescuro,
   },
   header: {
     alignItems: 'center',
-    paddingLeft: 14,
-    paddingRight: 14,
+    paddingHorizontal: 20,
   },
   logoText: {
-    fontSize: 60,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.branco,
-    marginBottom: 10,
-    marginTop: 50,
-    alignItems: 'center',
+    marginTop: 24,
   },
   slogan: {
-    fontSize: 25,
+    fontSize: 24,
     color: colors.branco,
-    marginBottom: 34,
+    fontWeight: '300',
+    marginBottom: 20,
     textAlign: 'center',
   },
   form: {
     flex: 1,
     backgroundColor: colors.branco,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: 24,
-    paddingLeft: 14,
-    paddingRight: 14,
-    minHeight: '100%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  label: {
+    color: colors.preto,
+    marginBottom: 6,
+    fontWeight: '500',
+    fontSize: 16,
   },
   input: {
     borderWidth: 1,
     borderColor: colors.azul,
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 8,
-    paddingTop: 14,
-    paddingBottom: 14,
+    borderRadius: 12,
+    marginBottom: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    elevation: 2,
   },
   button: {
     backgroundColor: colors.azulescuro,
-    paddingTop: 14,
-    paddingBottom: 14,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    borderRadius: 8,
+    borderRadius: 12,
+    marginTop: 10,
+    elevation: 3,
   },
   buttonText: {
     color: colors.branco,
     fontWeight: 'bold',
+    fontSize: 16,
   },
   image: {
     width: '100%',
-    height: 300,
+    height: 260,
     resizeMode: 'cover',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   link: {
-    marginTop: 16,
+    marginTop: 24,
     textAlign: 'center',
     color: colors.preto,
+    fontSize: 14,
   },
   linkAction: {
     color: colors.azul,
