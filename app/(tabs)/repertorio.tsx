@@ -1,8 +1,11 @@
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import * as Linking from 'expo-linking';
+import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
+
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +16,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 const normalizarNomeFicheiro = (nomeOriginal: string): string => {
@@ -25,21 +28,20 @@ const normalizarNomeFicheiro = (nomeOriginal: string): string => {
 };
 
 const extrairVideoId = (url: string): string | null => {
-  try {
-    const youtubeRegex =
-      /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w\-]+)/;
-    const match = url.match(youtubeRegex);
-    return match ? match[1] : null;
-  } catch {
-    return null;
-  }
+  const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w\-]+)/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+};
+
+const getPublicUrl = (fileName: string): string => {
+  return `https://nkorqkyiytalpxyjgbjq.supabase.co/storage/v1/object/public/repertorio/pdfs/${fileName}`;
 };
 
 const Repertorio = () => {
   const [uploading, setUploading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
-  const [pdfs, setPdfs] = useState<{ name: string; link?: string; titulo?: string }[]>([]);
+  const [pdfs, setPdfs] = useState<any[]>([]);
   const [loadingPdfs, setLoadingPdfs] = useState(true);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -48,7 +50,7 @@ const Repertorio = () => {
   const [ficheiroPDF, setFicheiroPDF] = useState<any>(null);
 
   const [modalEditar, setModalEditar] = useState(false);
-  const [nomeParaEditar, setNomeParaEditar] = useState('');
+  const [idParaEditar, setIdParaEditar] = useState<number | null>(null);
   const [linkParaEditar, setLinkParaEditar] = useState('');
   const [tituloParaEditar, setTituloParaEditar] = useState('');
 
@@ -80,19 +82,8 @@ const Repertorio = () => {
 
   const fetchPDFs = async () => {
     setLoadingPdfs(true);
-    const { data } = await supabase.storage.from('repertorio').list('pdfs');
-    const { data: dadosLinks } = await supabase.from('pdfs_info').select('nome, link, titulo');
-
-    const pdfsComLinks = (data || []).map((pdf) => {
-      const info = dadosLinks?.find((l) => l.nome === pdf.name);
-      return {
-        name: pdf.name,
-        link: info?.link,
-        titulo: info?.titulo,
-      };
-    });
-
-    setPdfs(pdfsComLinks);
+    const { data, error } = await supabase.from('pdfs_info').select('*').order('created_at', { ascending: false });
+    if (!error) setPdfs(data || []);
     setLoadingPdfs(false);
   };
 
@@ -111,6 +102,13 @@ const Repertorio = () => {
     }
   };
 
+  const fecharModal = () => {
+    setModalVisible(false);
+    setTituloPDF('');
+    setLinkYoutube('');
+    setFicheiroPDF(null);
+  };
+
   const handleUploadPDF = async () => {
     if (!ficheiroPDF) {
       Alert.alert('Erro', 'Seleciona um ficheiro PDF.');
@@ -119,42 +117,51 @@ const Repertorio = () => {
 
     const videoId = extrairVideoId(linkYoutube);
     if (linkYoutube.trim() && !videoId) {
-      Alert.alert('Link inválido');
+      Alert.alert('Link do YouTube inválido');
       return;
     }
 
     try {
       setUploading(true);
-      const filePath = `pdfs/${Date.now()}-${normalizarNomeFicheiro(ficheiroPDF.name)}`;
+      const fileName = `${Date.now()}-${normalizarNomeFicheiro(ficheiroPDF.name)}`;
+      const filePath = `pdfs/${fileName}`;
+
       const response = await fetch(ficheiroPDF.uri);
       const blob = await response.blob();
 
-      await supabase.storage.from('repertorio').upload(filePath, blob, {
+      if (!blob.size) {
+        Alert.alert('Erro', 'O ficheiro está vazio. Tente novamente.');
+        return;
+      }
+
+      const { error } = await supabase.storage.from('repertorio').upload(filePath, blob, {
         contentType: 'application/pdf',
       });
 
+      if (error) throw error;
+
+      const publicUrl = getPublicUrl(fileName);
+
       await supabase.from('pdfs_info').insert([{
-        nome: filePath.replace('pdfs/', ''),
+        nome: fileName,
         link: linkYoutube.trim() || null,
         titulo: tituloPDF.trim() || ficheiroPDF.name,
+        url: publicUrl,
         user_id: session?.user.id,
       }]);
 
-      Alert.alert('Sucesso', 'PDF criado!');
-      setModalVisible(false);
-      setTituloPDF('');
-      setLinkYoutube('');
-      setFicheiroPDF(null);
+      Alert.alert('Sucesso', 'PDF carregado com sucesso!');
+      fecharModal();
       fetchPDFs();
     } catch (err) {
-      console.error(err);
-      Alert.alert('Erro ao enviar ficheiro');
+      console.error('Erro ao carregar ficheiro:', err);
+      Alert.alert('Erro', 'Falha no upload do ficheiro.');
     } finally {
       setUploading(false);
     }
   };
 
-  const handleDeletePDF = async (nome: string) => {
+  const handleDeletePDF = async (id: number, nome: string) => {
     Alert.alert('Apagar', 'Queres apagar este PDF?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -162,24 +169,26 @@ const Repertorio = () => {
         style: 'destructive',
         onPress: async () => {
           await supabase.storage.from('repertorio').remove([`pdfs/${nome}`]);
-          await supabase.from('pdfs_info').delete().eq('nome', nome);
+          await supabase.from('pdfs_info').delete().eq('id', id);
           fetchPDFs();
         },
       },
     ]);
   };
 
-  const abrirModalEditar = (nome: string, link: string = '', titulo: string = '') => {
-    setNomeParaEditar(nome);
+  const abrirModalEditar = (id: number, link: string = '', titulo: string = '') => {
+    setIdParaEditar(id);
     setLinkParaEditar(link);
     setTituloParaEditar(titulo);
     setModalEditar(true);
   };
 
   const confirmarEdicao = async () => {
+    if (!idParaEditar) return;
+
     const videoId = extrairVideoId(linkParaEditar);
     if (linkParaEditar.trim() && !videoId) {
-      Alert.alert('Link inválido');
+      Alert.alert('Link do YouTube inválido');
       return;
     }
 
@@ -188,15 +197,23 @@ const Repertorio = () => {
         link: linkParaEditar.trim() || null,
         titulo: tituloParaEditar.trim() || null,
       })
-      .eq('nome', nomeParaEditar);
+      .eq('id', idParaEditar);
 
     setModalEditar(false);
     fetchPDFs();
   };
 
-  const handleOpenPDF = async (name: string) => {
-    const { data } = await supabase.storage.from('repertorio').createSignedUrl(`pdfs/${name}`, 60);
-    if (data?.signedUrl) Linking.openURL(data.signedUrl);
+  const handleOpenPDF = async (url: string) => {
+    try {
+      const nomeFicheiro = url.split('/').pop() || 'ficheiro.pdf';
+      const destino = FileSystem.documentDirectory + nomeFicheiro;
+
+      const download = await FileSystem.downloadAsync(url, destino);
+      await Sharing.shareAsync(download.uri);
+    } catch (error) {
+      console.error('Erro ao descarregar ou partilhar PDF:', error);
+      Alert.alert('Erro', 'Não foi possível abrir o ficheiro PDF.');
+    }
   };
 
   const handleOpenVideo = (link: string) => {
@@ -228,7 +245,7 @@ const Repertorio = () => {
         ) : (
           <FlatList
             data={pdfs}
-            keyExtractor={(item) => item.name}
+            keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => {
               const videoId = extrairVideoId(item.link || '');
               const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
@@ -241,21 +258,18 @@ const Repertorio = () => {
                   marginBottom: 10,
                 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <TouchableOpacity onPress={() => handleOpenPDF(item.name)} style={{ flex: 1 }}>
-                      <Text
-                        numberOfLines={1}
-                        style={{
-                          fontSize: 16,
-                          textDecorationLine: 'underline',
-                          color: '#2980b9',
-                        }}
-                      >
-                        {item.titulo || item.name}
+                    <TouchableOpacity onPress={() => handleOpenPDF(item.url)} style={{ flex: 1 }}>
+                      <Text numberOfLines={1} style={{
+                        fontSize: 16,
+                        textDecorationLine: 'underline',
+                        color: '#2980b9',
+                      }}>
+                        {item.titulo || item.nome}
                       </Text>
                     </TouchableOpacity>
 
                     {thumbnail && (
-                      <TouchableOpacity onPress={() => handleOpenVideo(item.link!)}>
+                      <TouchableOpacity onPress={() => handleOpenVideo(item.link)}>
                         <Image source={{ uri: thumbnail }} style={{
                           width: 100, height: 60,
                           borderRadius: 6, borderWidth: 1, borderColor: '#ccc',
@@ -272,7 +286,7 @@ const Repertorio = () => {
                       marginTop: 10,
                     }}>
                       <TouchableOpacity
-                        onPress={() => abrirModalEditar(item.name, item.link, item.titulo)}
+                        onPress={() => abrirModalEditar(item.id, item.link, item.titulo)}
                         style={{
                           backgroundColor: '#f1c40f',
                           paddingHorizontal: 12,
@@ -283,7 +297,7 @@ const Repertorio = () => {
                         <Text style={{ color: 'white' }}>Editar</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
-                        onPress={() => handleDeletePDF(item.name)}
+                        onPress={() => handleDeletePDF(item.id, item.nome)}
                         style={{
                           backgroundColor: '#e74c3c',
                           paddingHorizontal: 12,
