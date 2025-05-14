@@ -48,7 +48,7 @@ const Calendario = () => {
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle(); // ← corrigido aqui
 
     if (error) {
       console.error('Erro ao verificar role:', error.message);
@@ -184,7 +184,7 @@ const Calendario = () => {
           }}
         />
 
-        <Text style={{ marginTop: 20, textAlign: 'center', fontSize: 16, color: '#333' }}>
+        <Text style={{ marginTop: 20, textAlign: 'center', fontSize: 16, color: '#ccc' }}>
           Data selecionada: {selectedDate || 'Nenhuma'}
         </Text>
 
@@ -194,11 +194,11 @@ const Calendario = () => {
               Eventos neste dia:
             </Text>
             {eventosDoDia.length === 0 ? (
-              <Text style={{ marginTop: 5 }}>Nenhum evento.</Text>
+              <Text style={{ marginTop: 5, color: '#aaa' }}>Nenhum evento.</Text>
             ) : (
               eventosDoDia.map((item) => (
-                <View key={item.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderColor: '#ddd' }}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{item.titulo}</Text>
+                <View key={item.id} style={{ paddingVertical: 10, borderBottomWidth: 1, borderColor: '#333' }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#fff' }}>{item.titulo}</Text>
                   {isAdmin && (
                     <>
                       <Botao title="Editar" onPress={() => iniciarEdicao(item)} />

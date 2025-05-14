@@ -49,6 +49,7 @@ export default function Signup() {
         {
           id: userId,
           name: name,
+          email: email,
           role: 'user'
         }
       ]);
