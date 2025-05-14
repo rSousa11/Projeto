@@ -1,11 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
-import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
-
 import {
   ActivityIndicator,
   Alert,
@@ -16,16 +14,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
+import UploadPDFBox from '../../components/UploadPDFBox';
 
-const normalizarNomeFicheiro = (nomeOriginal: string): string => {
-  return nomeOriginal
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9.\-_]/g, '_')
-    .replace(/_+/g, '_');
-};
 
 const extrairVideoId = (url: string): string | null => {
   const regex = /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w\-]+)/;
@@ -33,12 +25,7 @@ const extrairVideoId = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
-const getPublicUrl = (fileName: string): string => {
-  return `https://nkorqkyiytalpxyjgbjq.supabase.co/storage/v1/object/public/repertorio/pdfs/${fileName}`;
-};
-
 const Repertorio = () => {
-  const [uploading, setUploading] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [pdfs, setPdfs] = useState<any[]>([]);
@@ -47,7 +34,6 @@ const Repertorio = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [tituloPDF, setTituloPDF] = useState('');
   const [linkYoutube, setLinkYoutube] = useState('');
-  const [ficheiroPDF, setFicheiroPDF] = useState<any>(null);
 
   const [modalEditar, setModalEditar] = useState(false);
   const [idParaEditar, setIdParaEditar] = useState<number | null>(null);
@@ -71,6 +57,7 @@ const Repertorio = () => {
     };
 
     loadSessionAndRole();
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
@@ -82,7 +69,11 @@ const Repertorio = () => {
 
   const fetchPDFs = async () => {
     setLoadingPdfs(true);
-    const { data, error } = await supabase.from('pdfs_info').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('pdfs_info')
+      .select('*')
+      .order('created_at', { ascending: false });
+
     if (!error) setPdfs(data || []);
     setLoadingPdfs(false);
   };
@@ -90,76 +81,6 @@ const Repertorio = () => {
   useEffect(() => {
     fetchPDFs();
   }, []);
-
-  const handleEscolherPDF = async () => {
-    const result = await DocumentPicker.getDocumentAsync({
-      type: 'application/pdf',
-      copyToCacheDirectory: true,
-    });
-
-    if (!result.canceled && result.assets?.[0]) {
-      setFicheiroPDF(result.assets[0]);
-    }
-  };
-
-  const fecharModal = () => {
-    setModalVisible(false);
-    setTituloPDF('');
-    setLinkYoutube('');
-    setFicheiroPDF(null);
-  };
-
-  const handleUploadPDF = async () => {
-    if (!ficheiroPDF) {
-      Alert.alert('Erro', 'Seleciona um ficheiro PDF.');
-      return;
-    }
-
-    const videoId = extrairVideoId(linkYoutube);
-    if (linkYoutube.trim() && !videoId) {
-      Alert.alert('Link do YouTube inválido');
-      return;
-    }
-
-    try {
-      setUploading(true);
-      const fileName = `${Date.now()}-${normalizarNomeFicheiro(ficheiroPDF.name)}`;
-      const filePath = `pdfs/${fileName}`;
-
-      const response = await fetch(ficheiroPDF.uri);
-      const blob = await response.blob();
-
-      if (!blob.size) {
-        Alert.alert('Erro', 'O ficheiro está vazio. Tente novamente.');
-        return;
-      }
-
-      const { error } = await supabase.storage.from('repertorio').upload(filePath, blob, {
-        contentType: 'application/pdf',
-      });
-
-      if (error) throw error;
-
-      const publicUrl = getPublicUrl(fileName);
-
-      await supabase.from('pdfs_info').insert([{
-        nome: fileName,
-        link: linkYoutube.trim() || null,
-        titulo: tituloPDF.trim() || ficheiroPDF.name,
-        url: publicUrl,
-        user_id: session?.user.id,
-      }]);
-
-      Alert.alert('Sucesso', 'PDF carregado com sucesso!');
-      fecharModal();
-      fetchPDFs();
-    } catch (err) {
-      console.error('Erro ao carregar ficheiro:', err);
-      Alert.alert('Erro', 'Falha no upload do ficheiro.');
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleDeletePDF = async (id: number, nome: string) => {
     Alert.alert('Apagar', 'Queres apagar este PDF?', [
@@ -192,7 +113,8 @@ const Repertorio = () => {
       return;
     }
 
-    await supabase.from('pdfs_info')
+    await supabase
+      .from('pdfs_info')
       .update({
         link: linkParaEditar.trim() || null,
         titulo: tituloParaEditar.trim() || null,
@@ -207,18 +129,32 @@ const Repertorio = () => {
     try {
       const nomeFicheiro = url.split('/').pop() || 'ficheiro.pdf';
       const destino = FileSystem.documentDirectory + nomeFicheiro;
-
       const download = await FileSystem.downloadAsync(url, destino);
       await Sharing.shareAsync(download.uri);
     } catch (error) {
-      console.error('Erro ao descarregar ou partilhar PDF:', error);
-      Alert.alert('Erro', 'Não foi possível abrir o ficheiro PDF.');
+      console.error('Erro ao abrir PDF:', error);
+      Alert.alert('Erro', 'Não foi possível abrir o ficheiro.');
     }
   };
 
   const handleOpenVideo = (link: string) => {
     if (link) Linking.openURL(link);
   };
+
+  const fecharModal = () => {
+    setModalVisible(false);
+    setTituloPDF('');
+    setLinkYoutube('');
+  };
+
+  if (!session || !session.user) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 10 }}>A carregar sessão...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
@@ -251,40 +187,53 @@ const Repertorio = () => {
               const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
 
               return (
-                <View style={{
-                  backgroundColor: 'white',
-                  borderRadius: 8,
-                  padding: 12,
-                  marginBottom: 10,
-                }}>
+                <View
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: 8,
+                    padding: 12,
+                    marginBottom: 10,
+                  }}
+                >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <TouchableOpacity onPress={() => handleOpenPDF(item.url)} style={{ flex: 1 }}>
-                      <Text numberOfLines={1} style={{
-                        fontSize: 16,
-                        textDecorationLine: 'underline',
-                        color: '#2980b9',
-                      }}>
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          fontSize: 16,
+                          textDecorationLine: 'underline',
+                          color: '#2980b9',
+                        }}
+                      >
                         {item.titulo || item.nome}
                       </Text>
                     </TouchableOpacity>
 
                     {thumbnail && (
                       <TouchableOpacity onPress={() => handleOpenVideo(item.link)}>
-                        <Image source={{ uri: thumbnail }} style={{
-                          width: 100, height: 60,
-                          borderRadius: 6, borderWidth: 1, borderColor: '#ccc',
-                        }} />
+                        <Image
+                          source={{ uri: thumbnail }}
+                          style={{
+                            width: 100,
+                            height: 60,
+                            borderRadius: 6,
+                            borderWidth: 1,
+                            borderColor: '#ccc',
+                          }}
+                        />
                       </TouchableOpacity>
                     )}
                   </View>
 
                   {role === 'admin' && (
-                    <View style={{
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                      gap: 12,
-                      marginTop: 10,
-                    }}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        gap: 12,
+                        marginTop: 10,
+                      }}
+                    >
                       <TouchableOpacity
                         onPress={() => abrirModalEditar(item.id, item.link, item.titulo)}
                         style={{
@@ -317,17 +266,21 @@ const Repertorio = () => {
 
         {/* MODAL CRIAR NOVO */}
         <Modal visible={modalVisible} transparent animationType="slide">
-          <View style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            padding: 20,
-          }}>
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 10,
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.4)',
               padding: 20,
-            }}>
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 10,
+                padding: 20,
+              }}
+            >
               <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>
                 Novo PDF
               </Text>
@@ -336,73 +289,71 @@ const Repertorio = () => {
                 placeholder="Título"
                 value={tituloPDF}
                 onChangeText={setTituloPDF}
-                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  borderRadius: 6,
+                  padding: 10,
+                  marginBottom: 10,
+                }}
               />
 
               <TextInput
                 placeholder="Link do YouTube (opcional)"
                 value={linkYoutube}
                 onChangeText={setLinkYoutube}
-                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 }}
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  borderRadius: 6,
+                  padding: 10,
+                  marginBottom: 10,
+                }}
+              />
+
+              <UploadPDFBox
+                onUploadSuccess={() => {
+                  fetchPDFs();
+                  fecharModal();
+                }}
+                userId={session.user.id}
+                tituloPDF={tituloPDF}
+                linkYoutube={linkYoutube}
               />
 
               <TouchableOpacity
-                onPress={handleEscolherPDF}
+                onPress={fecharModal}
                 style={{
-                  backgroundColor: '#2980b9',
+                  marginTop: 12,
                   padding: 10,
-                  borderRadius: 6,
                   alignItems: 'center',
-                  marginBottom: 12,
+                  backgroundColor: '#ccc',
+                  borderRadius: 6,
                 }}
               >
-                <Text style={{ color: 'white' }}>{ficheiroPDF ? ficheiroPDF.name : 'Selecionar PDF'}</Text>
+                <Text>Fechar</Text>
               </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setModalVisible(false);
-                    setTituloPDF('');
-                    setLinkYoutube('');
-                    setFicheiroPDF(null);
-                  }}
-                  style={{
-                    paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ccc', borderRadius: 6,
-                  }}
-                >
-                  <Text>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleUploadPDF}
-                  disabled={uploading}
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 8,
-                    backgroundColor: uploading ? '#95a5a6' : '#007bff',
-                    borderRadius: 6,
-                  }}
-                >
-                  <Text style={{ color: 'white' }}>{uploading ? 'A enviar...' : 'Guardar'}</Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         </Modal>
 
         {/* MODAL EDITAR */}
         <Modal visible={modalEditar} transparent animationType="slide">
-          <View style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            padding: 20,
-          }}>
-            <View style={{
-              backgroundColor: 'white',
-              borderRadius: 10,
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              backgroundColor: 'rgba(0,0,0,0.4)',
               padding: 20,
-            }}>
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: 'white',
+                borderRadius: 10,
+                padding: 20,
+              }}
+            >
               <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>
                 Editar título e link
               </Text>
@@ -412,7 +363,11 @@ const Repertorio = () => {
                 value={tituloParaEditar}
                 onChangeText={setTituloParaEditar}
                 style={{
-                  borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8, marginBottom: 12,
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 12,
                 }}
               />
 
@@ -421,7 +376,11 @@ const Repertorio = () => {
                 value={linkParaEditar}
                 onChangeText={setLinkParaEditar}
                 style={{
-                  borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8, marginBottom: 12,
+                  borderWidth: 1,
+                  borderColor: '#ccc',
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 12,
                 }}
               />
 
@@ -429,7 +388,10 @@ const Repertorio = () => {
                 <TouchableOpacity
                   onPress={() => setModalEditar(false)}
                   style={{
-                    paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ccc', borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: '#ccc',
+                    borderRadius: 6,
                   }}
                 >
                   <Text>Cancelar</Text>
@@ -437,7 +399,10 @@ const Repertorio = () => {
                 <TouchableOpacity
                   onPress={confirmarEdicao}
                   style={{
-                    paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#27ae60', borderRadius: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    backgroundColor: '#27ae60',
+                    borderRadius: 6,
                   }}
                 >
                   <Text style={{ color: 'white' }}>Guardar</Text>
