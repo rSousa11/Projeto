@@ -35,6 +35,35 @@ export default function Login() {
       return;
     }
 
+    if (data.user) {
+      const { user } = data;
+
+      // Verifica se o utilizador já tem perfil
+      const { data: existingUser, error: selectError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingUser) {
+        const { error: insertError } = await supabase.from('users').insert([
+          {
+            id: user.id,
+            name: user.user_metadata?.name || 'Utilizador',
+            email: user.email,
+            role: 'user'
+          }
+        ]);
+
+        if (insertError) {
+          console.error('Erro ao criar perfil na tabela users:', insertError.message);
+          Alert.alert('Erro', 'Não foi possível criar o perfil do utilizador.');
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
     setLoading(false);
     router.replace('/(tabs)');
   }
@@ -52,7 +81,6 @@ export default function Login() {
         >
           <View style={styles.container}>
             <View style={styles.topBackground}>
-              
               <Image 
                 source={require('@/assets/images/bg.png')}
                 resizeMode="cover"

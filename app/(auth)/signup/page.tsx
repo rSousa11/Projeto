@@ -44,23 +44,8 @@ export default function Signup() {
     const userId = signUpData.user?.id;
     console.log('Novo utilizador:', userId);
 
-    if (userId) {
-      const { error: upsertError } = await supabase.from('users').upsert([
-        {
-          id: userId,
-          name: name,
-          email: email,
-          role: 'user'
-        }
-      ]);
+    console.log('Utilizador criado, aguarda confirmação por e-mail.');
 
-      if (upsertError) {
-        console.error('Erro ao inserir no users:', upsertError);
-        Alert.alert('Erro ao criar perfil', upsertError.message);
-      } else {
-        console.log('Perfil criado com sucesso');
-      }
-    }
 
     setLoading(false);
     Alert.alert('Sucesso', 'Conta criada. Verifique o seu e-mail.');

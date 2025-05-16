@@ -1,24 +1,16 @@
 import { supabase } from '@/lib/supabase';
-import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import mime from 'mime';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Button,
   Image,
   SafeAreaView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-
-// Se atob não estiver disponível (em Android puro), define manualmente:
-const atobPolyfill = (input: string) => {
-  return global.atob
-    ? global.atob(input)
-    : Buffer.from(input, 'base64').toString('binary');
-};
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -67,52 +59,75 @@ const Profile = () => {
     }
   };
 
-  const uploadImage = async (uri: string) => {
-    try {
-      setUploading(true);
+const uploadImage = async (imageUri: string) => {
+  try {
+    setUploading(true);
 
-      const fileExt = uri.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = uri.startsWith('file://') ? uri : `file://${uri}`;
+    // Obter utilizador autenticado
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.log("Erro ao obter utilizador:", userError?.message);
+      Alert.alert("Erro", "Utilizador não autenticado.");
+      return;
+    }
 
-      const base64 = await FileSystem.readAsStringAsync(filePath, {
-        encoding: FileSystem.EncodingType.Base64,
+    console.log("ID do utilizador autenticado:", user.id);
+
+    // Preparar dados do ficheiro
+    const fileExt = imageUri.split('.').pop();
+    const fileName = `${user.id}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+    const mimeType = mime.getType(fileExt || 'jpg') || 'image/jpeg';
+
+    // Obter blob da imagem (compatível com React Native)
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+
+    // Enviar para Supabase Storage com upsert
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, blob, {
+        contentType: mimeType,
+        upsert: true,
       });
 
-      // Criar Blob a partir do base64 usando um Data URL
-      const base64DataUrl = `data:image/${fileExt};base64,${base64}`;
-
-      const blob = await (await fetch(base64DataUrl)).blob();
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, blob, {
-          contentType: blob.type,
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { publicUrl } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-        .data;
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ avatar_url: publicUrl })
-        .eq('id', userInfo.id);
-
-      if (updateError) throw updateError;
-
-      setUserInfo({ ...userInfo, avatar_url: publicUrl });
-    } catch (error) {
-      console.error('Erro ao fazer upload da imagem:', error);
-      Alert.alert('Erro ao carregar imagem');
-    } finally {
-      setUploading(false);
+    if (uploadError) {
+      Alert.alert('Erro ao carregar imagem', uploadError.message);
+      return;
     }
-  };
+
+    // Obter URL público do ficheiro
+    const { data: publicUrlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    const publicUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+    // Atualizar a tabela users com o novo link da imagem
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ image: publicUrl }) // Usa "image", conforme a tua tabela
+      .eq('id', user.id);
+
+    if (updateError) {
+      Alert.alert('Erro ao atualizar perfil', updateError.message);
+      return;
+    }
+
+    // Atualizar estado local
+    setUserInfo((prev: any) => ({ ...prev, image: publicUrl }));
+    console.log("Imagem atualizada com sucesso:", publicUrl);
+  } catch (err: any) {
+    console.error('Erro inesperado:', err.message);
+    Alert.alert('Erro', err.message);
+  } finally {
+    setUploading(false);
+  }
+};
+
+
+
+
 
   if (loading) {
     return (
@@ -131,42 +146,76 @@ const Profile = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={{ alignItems: 'center', marginTop: 40 }}>
-        <TouchableOpacity onPress={handlePickImage}>
-          <Image
-            source={
-              userInfo.avatar_url
-                ? { uri: userInfo.avatar_url }
-                : require('@/assets/images/default-avatar.png')
-            }
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              borderWidth: 2,
-              borderColor: '#ccc',
-            }}
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
-        <Text style={{ marginTop: 10, color: '#888' }}>
-          {uploading ? 'A atualizar...' : 'Toque para mudar foto'}
-        </Text>
-      </View>
+  <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+    <View style={{ alignItems: 'center', paddingTop: 50 }}>
+      <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
+        <Image
+          source={
+            userInfo.image
+              ? { uri: userInfo.image }
+              : require('@/assets/images/default-avatar.png')
+          }
+          style={{
+            width: 130,
+            height: 130,
+            borderRadius: 65,
+            borderWidth: 2,
+            borderColor: '#dee2e6',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+          }}
+        />
+      </TouchableOpacity>
+      <Text style={{ marginTop: 12, color: '#6c757d', fontSize: 14 }}>
+        {uploading ? 'A atualizar...' : 'Toque para mudar a foto de perfil'}
+      </Text>
+    </View>
 
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 16 }}>
-          Olá, {userInfo.nome}
-        </Text>
-        <Text style={{ fontSize: 16 }}>Tipo de utilizador: {userInfo.role}</Text>
+    <View style={{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    }}>
+      <Text style={{
+        fontSize: 28,
+        fontWeight: '600',
+        color: '#212529',
+        marginBottom: 8,
+      }}>
+        Olá, {userInfo.nome}
+      </Text>
+      <Text style={{
+        fontSize: 16,
+        color: '#495057',
+        marginBottom: 24,
+      }}>
+        Tipo de utilizador: {userInfo.role}
+      </Text>
 
-        <View style={{ marginTop: 32 }}>
-          <Button title="Terminar sessão" onPress={handleLogout} />
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+      <TouchableOpacity
+        onPress={handleLogout}
+        style={{
+          backgroundColor: '#ff6b6b',
+          paddingVertical: 12,
+          paddingHorizontal: 24,
+          borderRadius: 30,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 3,
+        }}
+      >
+        <Text style={{ color: 'white', fontSize: 16, fontWeight: '500' }}>
+          Terminar sessão
+        </Text>
+      </TouchableOpacity>
+    </View>
+  </SafeAreaView>
+);
+
 };
 
 export default Profile;
