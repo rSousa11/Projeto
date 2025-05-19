@@ -1,3 +1,4 @@
+import { iconesInstrumentos } from '@/constants/instrumentos';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,12 +13,14 @@ import {
   View,
 } from 'react-native';
 import { Modalize } from 'react-native-modalize';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface UserItem {
   id: string;
   name: string;
   email: string;
   image?: string;
+  instrumento?: string; 
 }
 
 export default function Home() {
@@ -38,7 +41,7 @@ export default function Home() {
     setLoading(true);
     const { data, error } = await supabase
       .from('users')
-      .select('id, name, email, image')
+      .select('id, name, email, image, instrumento') 
       .order('name', { ascending: true });
 
     if (error) {
@@ -84,7 +87,12 @@ export default function Home() {
     }, [modalOpen])
   );
 
-  const renderItem = ({ item }: { item: UserItem }) => (
+  const renderItem = ({ item }: { item: UserItem }) => {
+  const instrumentoInfo = item.instrumento
+    ? iconesInstrumentos[item.instrumento] || { name: 'music-note', color: '#495057' }
+    : null;
+
+  return (
     <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
       <Image
         source={{
@@ -94,10 +102,25 @@ export default function Home() {
       />
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.email}>{item.email}</Text>
+
+        {item.instrumento && instrumentoInfo && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+            <MaterialCommunityIcons
+              name={instrumentoInfo.name}
+              size={18}
+              color={instrumentoInfo.color}
+              style={{ marginRight: 6 }}
+            />
+            <Text style={styles.instrumento}>{item.instrumento}</Text>
+          </View>
+        )}
+
+        
       </View>
     </TouchableOpacity>
   );
+};
+
 
   return (
     <View style={styles.container}>
@@ -143,6 +166,21 @@ export default function Home() {
           />
           <Text style={styles.modalName}>{selectedUser?.name}</Text>
           <Text style={styles.modalEmail}>{selectedUser?.email}</Text>
+
+          {/* 👇 Mostra o instrumento se existir */}
+          {selectedUser?.instrumento && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+              <MaterialCommunityIcons
+                name={iconesInstrumentos[selectedUser.instrumento]?.name || 'music-note'}
+                color={iconesInstrumentos[selectedUser.instrumento]?.color || '#495057'}
+                size={24}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={{ fontSize: 16, color: '#333' }}>
+                {selectedUser.instrumento}
+              </Text>
+            </View>
+          )}
         </View>
       </Modalize>
     </View>
@@ -193,6 +231,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  instrumento: {
+    fontSize: 14,
+    color: '#444',
+  },
+
   closeButton: {
     position: 'absolute',
     top: 16,

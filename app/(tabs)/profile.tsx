@@ -1,7 +1,14 @@
+import { iconesInstrumentos, instrumentosLista } from '@/constants/instrumentos';
 import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInUp
+} from 'react-native-reanimated';
+
 import {
   ActivityIndicator,
   Alert,
@@ -16,60 +23,6 @@ import {
 } from 'react-native';
 import { Modalize } from 'react-native-modalize';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-
-
-const instrumentosLista = [
-  'Acordeão', 'Banjo', 'Baixo Eléctrico', 'Bombo', 'Bombardino', 'Caixa',
-  'Cavaquinho', 'Clarinete', 'Contrabaixo', 'Fagote', 'Flauta',
-  'Guitarra Clássica', 'Guitarra Eléctrica', 'Harmónica', 'Maestro',
-  'Marimba', 'Oboé', 'Órgão', 'Outro', 'Piano', 'Pratos', 'Saxofone Alto',
-  'Saxofone Barítono', 'Saxofone Tenor', 'Sintetizador', 'Tímpanos',
-  'Trombone', 'Trompa', 'Trompete', 'Tuba', 'Ukulele', 'Violino',
-  'Violoncelo', 'Viola', 'Voz', 'Xilofone'
-];
-const iconesInstrumentos: Record<string, { name: string; color?: string }> = {
-  Acordeão: { name: 'piano', color: '#c92a2a' },
-  Banjo: { name: 'guitar-acoustic', color: '#ae3ec9' },
-  'Baixo Eléctrico': { name: 'guitar-electric', color: '#d9480f' },
-  Bombo: { name: 'disc', color: '#e64980' },
-  Bombardino: { name: 'bugle', color: '#fab005' },
-  Caixa: { name: 'midi-port', color: '#d6336c' },
-  Cavaquinho: { name: 'guitar-acoustic', color: '#ae3ec9' },
-  Clarinete: { name: 'music-note', color: '#12b886' },
-  Contrabaixo: { name: 'violin', color: '#4263eb' },
-  Fagote: { name: 'music-note', color: '#0b7285' },
-  Flauta: { name: 'music', color: '#0ca678' },
-  'Guitarra Clássica': { name: 'guitar-acoustic', color: '#e67700' },
-  'Guitarra Eléctrica': { name: 'guitar-electric', color: '#e8590c' },
-  Harmónica: { name: 'music-note', color: '#c2255c' },
-  Maestro: { name: 'account-tie', color: '#495057' },
-  Marimba: { name: 'music-note', color: '#e64980' },
-  Oboé: { name: 'music-note', color: '#20c997' },
-  Órgão: { name: 'piano', color: '#364fc7' },
-  Outro: { name: 'help-circle-outline', color: '#868e96' },
-  Piano: { name: 'piano', color: '#7950f2' },
-  Pratos: { name: 'disc', color: '#f06595' },
-  Saxofone: { name: 'saxophone', color: '#339af0' },
-  'Saxofone Alto': { name: 'saxophone', color: '#339af0' },
-  'Saxofone Tenor': { name: 'saxophone', color: '#339af0' },
-  'Saxofone Barítono': { name: 'saxophone', color: '#339af0' },
-  Sintetizador: { name: 'piano', color: '#3b5bdb' },
-  Tímpanos: { name: 'album', color: '#e64980' },
-  Trombone: { name: 'bugle', color: '#fab005' },
-  Trompa: { name: 'bugle', color: '#fcc419' },
-  Trompete: { name: 'trumpet', color: '#fab005' },
-  Tuba: { name: 'bullhorn-variant', color: '#fab005' },
-  Ukulele: { name: 'guitar-acoustic', color: '#be4bdb' },
-  Viola: { name: 'violin', color: '#5f3dc4' },
-  Violino: { name: 'violin', color: '#6741d9' },
-  Violoncelo: { name: 'violin', color: '#4c6ef5' },
-  Voz: { name: 'microphone', color: '#e64980' },
-  Xilofone: { name: 'piano', color: '#e64980' },
-};
-
-
-
-
 
 type UserInfo = {
   id: string;
@@ -96,9 +49,7 @@ export default function Profile() {
       const parent = navigation.getParent?.();
       if (parent) {
         parent.setOptions({
-          tabBarStyle: modalOpen || editarPerfilOpen
-            ? { display: 'none' }
-            : undefined,
+          tabBarStyle: modalOpen || editarPerfilOpen ? { display: 'none' } : undefined,
         });
       }
     }, [modalOpen, editarPerfilOpen])
@@ -141,19 +92,15 @@ export default function Profile() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Terminar sessão',
-      'Tens a certeza que queres sair?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sim',
-          onPress: async () => {
-            await supabase.auth.signOut();
-          },
+    Alert.alert('Terminar sessão', 'Tens a certeza que queres sair?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sim',
+        onPress: async () => {
+          await supabase.auth.signOut();
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handlePickImage = async () => {
@@ -223,7 +170,7 @@ export default function Profile() {
         return;
       }
 
-      setUserInfo((prev) => prev ? { ...prev, image: publicUrl } : null);
+      setUserInfo((prev) => (prev ? { ...prev, image: publicUrl } : null));
     } catch (err: any) {
       Alert.alert('Erro', err.message);
     } finally {
@@ -232,33 +179,32 @@ export default function Profile() {
   };
 
   const handleSelecionarInstrumento = async (inst: string) => {
-  setInstrumento(inst);
-  modalRef.current?.close();
+    setInstrumento(inst);
+    modalRef.current?.close();
 
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    const user = data?.user;
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      const user = data?.user;
 
-    if (!user) {
-      Alert.alert('Erro', 'Utilizador não autenticado.');
-      return;
+      if (!user) {
+        Alert.alert('Erro', 'Utilizador não autenticado.');
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ instrumento: inst })
+        .eq('id', user.id);
+
+      if (updateError) {
+        Alert.alert('Erro ao guardar instrumento', updateError.message);
+      } else {
+        setUserInfo((prev) => (prev ? { ...prev, instrumento: inst } : null));
+      }
+    } catch (err: any) {
+      Alert.alert('Erro', err.message || 'Erro inesperado ao selecionar instrumento.');
     }
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ instrumento: inst })
-      .eq('id', user.id);
-
-    if (updateError) {
-      Alert.alert('Erro ao guardar instrumento', updateError.message);
-    } else {
-      setUserInfo((prev) => prev ? { ...prev, instrumento: inst } : null);
-    }
-  } catch (err: any) {
-    Alert.alert('Erro', err.message || 'Erro inesperado ao selecionar instrumento.');
-  }
-};
-
+  };
 
   const handleGuardarAlteracoes = async () => {
     const { data } = await supabase.auth.getUser();
@@ -292,7 +238,23 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-      {/* Modal para editar nome/email */}
+      {/* Botão de logout no canto superior direito */}
+      <Animated.View
+          entering={FadeIn.duration(400)}
+          exiting={FadeOut.duration(300)}
+          layout={SlideInUp}
+          style={styles.logoutButtonContainer}
+        >
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <MaterialCommunityIcons name="logout" size={22} color="#ff6b6b" />
+          </TouchableOpacity>
+        </Animated.View>
+
+
+
+
+
+      {/* Modal Editar Perfil */}
       <Modalize
         ref={editarPerfilRef}
         adjustToContentHeight
@@ -302,10 +264,7 @@ export default function Profile() {
         modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}
         withReactModal
       >
-        <TouchableOpacity
-          onPress={() => editarPerfilRef.current?.close()}
-          style={styles.closeButton}
-        >
+        <TouchableOpacity onPress={() => editarPerfilRef.current?.close()} style={styles.closeButton}>
           <Text style={styles.closeButtonText}>✕</Text>
         </TouchableOpacity>
 
@@ -314,155 +273,137 @@ export default function Profile() {
         <Text style={{ marginBottom: 4 }}>Nome:</Text>
         <TextInput
           value={userInfo?.name}
-          onChangeText={(text) => setUserInfo((prev) => prev ? { ...prev, name: text } : null)}
+          onChangeText={(text) => setUserInfo((prev) => (prev ? { ...prev, name: text } : null))}
           style={styles.input}
         />
 
         <Text style={{ marginBottom: 4 }}>Email:</Text>
         <TextInput
           value={userInfo?.email}
-          onChangeText={(text) => setUserInfo((prev) => prev ? { ...prev, email: text } : null)}
+          onChangeText={(text) => setUserInfo((prev) => (prev ? { ...prev, email: text } : null))}
           style={styles.input}
           keyboardType="email-address"
           autoCapitalize="none"
         />
 
-        <TouchableOpacity
-          onPress={handleGuardarAlteracoes}
-          style={[styles.button, { backgroundColor: '#339af0' }]}
-        >
+        <TouchableOpacity onPress={handleGuardarAlteracoes} style={[styles.button, { backgroundColor: '#339af0' }]}>
           <Text style={{ color: '#fff', fontWeight: '600' }}>Guardar alterações</Text>
         </TouchableOpacity>
       </Modalize>
 
-      {/* Modal de instrumento (já existente) */}
+      {/* Modal Selecionar Instrumento */}
       <Modalize
-          ref={modalRef}
-          adjustToContentHeight
-          closeOnOverlayTap={false} // impede fechar ao tocar fora
-          panGestureEnabled={false} // impede fechar ao fazer scroll para baixo
-          withReactModal
-          handleStyle={{ backgroundColor: '#ccc' }}
-          modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-          scrollViewProps={{ bounces: false }}
-          onOpen={() => setModalOpen(true)}
-          onClosed={() => setModalOpen(false)}
+        ref={modalRef}
+        adjustToContentHeight
+        closeOnOverlayTap={false}
+        panGestureEnabled={false}
+        withReactModal
+        handleStyle={{ backgroundColor: '#ccc' }}
+        modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+        scrollViewProps={{ bounces: false }}
+        onOpen={() => setModalOpen(true)}
+        onClosed={() => setModalOpen(false)}
+      >
+        <View style={{ padding: 24 }}>
+          <TouchableOpacity onPress={() => modalRef.current?.close()} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+
+          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
+            Seleciona o teu instrumento
+          </Text>
+
+          <ScrollView style={{ maxHeight: 400 }}>
+            {instrumentosLista.map((inst) => {
+              const icon = iconesInstrumentos[inst] || { name: 'music-note', color: '#adb5bd' };
+              const isSelected = instrumento === inst;
+
+              return (
+                <TouchableOpacity
+                  key={inst}
+                  onPress={() => handleSelecionarInstrumento(inst)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#dee2e6',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MaterialCommunityIcons
+                      name={icon.name}
+                      color={icon.color}
+                      size={20}
+                      style={{ marginRight: 12 }}
+                    />
+                    <Text style={{ fontSize: 16 }}>{inst}</Text>
+                  </View>
+                  {isSelected && <MaterialCommunityIcons name="check" size={18} color="#40c057" />}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modalize>
+
+      {/* Conteúdo Principal */}
+      <Animated.View
+          entering={FadeIn.duration(400)}
+          layout={SlideInUp}
+          style={{ alignItems: 'center', paddingTop: 50 }}
         >
-          <View style={{ padding: 24 }}>
-            <TouchableOpacity
-              onPress={() => modalRef.current?.close()}
-              style={styles.closeButton}
-            >
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
-              Seleciona o teu instrumento
-            </Text>
-
-            <ScrollView style={{ maxHeight: 400 }}>
-              {instrumentosLista.map((inst) => {
-                const icon = iconesInstrumentos[inst] || { name: 'music-note', color: '#adb5bd' };
-                const isSelected = instrumento === inst;
-
-                return (
-                  <TouchableOpacity
-                    key={inst}
-                    onPress={() => handleSelecionarInstrumento(inst)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      paddingVertical: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: '#dee2e6',
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <MaterialCommunityIcons
-                        name={icon.name}
-                        color={icon.color}
-                        size={20}
-                        style={{ marginRight: 12 }}
-                      />
-                      <Text style={{ fontSize: 16 }}>{inst}</Text>
-                    </View>
-
-                    {isSelected && (
-                      <MaterialCommunityIcons name="check" size={18} color="#40c057" />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-
-
-
-          </View>
-        </Modalize>
-
-
-      <View style={{ alignItems: 'center', paddingTop: 50 }}>
-        <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
-          <View>
-            <Image
-              source={
-                userInfo?.image
-                  ? { uri: userInfo.image }
-                  : require('@/assets/images/default-avatar.png')
-              }
-              style={{
-                width: 130,
-                height: 130,
-                borderRadius: 65,
-                borderWidth: 2,
-                borderColor: '#dee2e6',
-              }}
-            />
-            {uploading && (
-              <ActivityIndicator
+          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
+            <View>
+              <Image
+                source={
+                  userInfo?.image
+                    ? { uri: userInfo.image }
+                    : require('@/assets/images/default-avatar.png')
+                }
                 style={{
-                  position: 'absolute',
-                  top: 45,
-                  left: 45,
+                  width: 130,
+                  height: 130,
+                  borderRadius: 65,
+                  borderWidth: 2,
+                  borderColor: '#dee2e6',
                 }}
-                size="large"
-                color="#495057"
               />
-            )}
-          </View>
-        </TouchableOpacity>
-        <Text style={{ marginTop: 12, color: '#6c757d', fontSize: 14 }}>
-          {uploading ? 'A atualizar...' : 'Toque para mudar a foto de perfil'}
-        </Text>
-      </View>
+              {uploading && (
+                <ActivityIndicator
+                  style={{ position: 'absolute', top: 45, left: 45 }}
+                  size="large"
+                  color="#495057"
+                />
+              )}
+            </View>
+          </TouchableOpacity>
+          <Text style={{ marginTop: 12, color: '#6c757d', fontSize: 14 }}>
+            {uploading ? 'A atualizar...' : 'Toque para mudar a foto de perfil'}
+          </Text>
+        </Animated.View>
 
-      <View style={{ flex: 1, alignItems: 'center', padding: 20 }}>
-        <Text style={{ fontSize: 28, fontWeight: '600', color: '#212529', marginBottom: 8 }}>
-          {userInfo?.name}
-        </Text>
-        <Text style={{ fontSize: 16, color: '#495057', marginBottom: 12 }}>
-          {userInfo?.email}
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => editarPerfilRef.current?.open()}
-          style={[styles.button, { backgroundColor: '#51cf66', marginBottom: 20 }]}
+        <Animated.View
+          entering={FadeIn.duration(400).delay(100)}
+          layout={SlideInUp.delay(100)}
+          style={{ flex: 1, alignItems: 'center', padding: 20 }}
         >
-          <Text style={{ color: '#fff', fontWeight: '600' }}>Editar perfil</Text>
-        </TouchableOpacity>
+          <Text style={{ fontSize: 28, fontWeight: '600', color: '#212529', marginBottom: 8 }}>
+            {userInfo?.name}
+          </Text>
+          <Text style={{ fontSize: 16, color: '#495057', marginBottom: 12 }}>
+            {userInfo?.email}
+          </Text>
 
-        
-
-        <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 24,
-            }}
+          <TouchableOpacity
+            onPress={() => editarPerfilRef.current?.open()}
+            style={[styles.button, { backgroundColor: '#51cf66', marginBottom: 20 }]}
           >
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Editar perfil</Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
             <View
               style={{
                 flexDirection: 'row',
@@ -488,35 +429,22 @@ export default function Profile() {
               </Text>
             </View>
 
-  <TouchableOpacity
-    onPress={() => modalRef.current?.open()}
-    style={{
-      marginLeft: 10,
-      padding: 8,
-      borderRadius: 8,
-      backgroundColor: '#e9ecef',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <MaterialCommunityIcons name="pencil" size={20} color="#495057" />
-  </TouchableOpacity>
-</View>
+            <TouchableOpacity
+              onPress={() => modalRef.current?.open()}
+              style={{
+                marginLeft: 10,
+                padding: 8,
+                borderRadius: 8,
+                backgroundColor: '#e9ecef',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons name="pencil" size={20} color="#495057" />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={{
-            backgroundColor: '#ff6b6b',
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            borderRadius: 30,
-          }}
-        >
-          <Text style={{ color: 'white', fontSize: 16, fontWeight: '500' }}>
-            Terminar sessão
-          </Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -552,4 +480,25 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
   },
+
+  logoutButtonContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  logoutButton: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 25,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+
 });

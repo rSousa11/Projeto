@@ -30,6 +30,8 @@ const Repertorio = () => {
   const [role, setRole] = useState<string | null>(null);
   const [pdfs, setPdfs] = useState<any[]>([]);
   const [loadingPdfs, setLoadingPdfs] = useState(true);
+  const [termoPesquisa, setTermoPesquisa] = useState('');
+
 
   const [modalVisible, setModalVisible] = useState(false);
   const [tituloPDF, setTituloPDF] = useState('');
@@ -159,7 +161,7 @@ const Repertorio = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
       <View style={{ padding: 20, flex: 1 }}>
-        <Text style={{ fontSize: 26, fontWeight: 'bold', marginBottom: 20 }}>📚 Repositório de PDFs</Text>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', }}>📚 Repertório</Text>
 
         {role === 'admin' && (
           <TouchableOpacity
@@ -175,12 +177,35 @@ const Repertorio = () => {
             <Text style={{ color: 'white', fontWeight: '600' }}>Criar Novo</Text>
           </TouchableOpacity>
         )}
+        <TextInput
+          placeholder="Pesquisar PDF..."
+          placeholderTextColor="#ccc"
+          value={termoPesquisa}
+          onChangeText={setTermoPesquisa}
+          style={{
+            borderWidth: 1,
+            borderColor: '#ccc',
+            borderRadius: 8,
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            marginBottom: 12,
+            color:'black',
+            backgroundColor:'white',
+          }}
+        />
+
 
         {loadingPdfs ? (
           <ActivityIndicator />
         ) : (
+          
           <FlatList
-            data={pdfs}
+            data={pdfs.filter(item =>
+            (item.titulo || item.nome)
+              .toLowerCase()
+              .includes(termoPesquisa.toLowerCase())
+          )}
+
             keyExtractor={(item) => String(item.id)}
             renderItem={({ item }) => {
               const videoId = extrairVideoId(item.link || '');
@@ -287,6 +312,7 @@ const Repertorio = () => {
 
               <TextInput
                 placeholder="Título"
+                placeholderTextColor="#ccc"
                 value={tituloPDF}
                 onChangeText={setTituloPDF}
                 style={{
@@ -300,6 +326,7 @@ const Repertorio = () => {
 
               <TextInput
                 placeholder="Link do YouTube (opcional)"
+                placeholderTextColor="#ccc"
                 value={linkYoutube}
                 onChangeText={setLinkYoutube}
                 style={{
