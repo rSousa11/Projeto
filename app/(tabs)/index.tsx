@@ -23,6 +23,7 @@ interface UserItem {
 export default function Home() {
   const [members, setMembers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -49,12 +50,17 @@ export default function Home() {
     setLoading(false);
   }
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchMembers();
+    setRefreshing(false);
+  };
+
   const openModal = (user: UserItem) => {
     setSelectedUser(user);
     modalRef.current?.open();
   };
 
-  // Esconde ou mostra a tab bar dinamicamente
   useFocusEffect(
     useCallback(() => {
       const parent = navigation.getParent?.();
@@ -104,6 +110,8 @@ export default function Home() {
           data={members}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}

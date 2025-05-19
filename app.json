@@ -52,8 +52,15 @@
             "./assets/fonts/Rubik-SemiBold.ttf"
           ]
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "A app precisa de acesso às suas fotos para alterar a imagem de perfil."
+        }
       ]
     ],
+
     "experiments": {
       "typedRoutes": true
     }

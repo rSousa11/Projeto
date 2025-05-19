@@ -44,13 +44,29 @@ export default function Signup() {
     const userId = signUpData.user?.id;
     console.log('Novo utilizador:', userId);
 
-    console.log('Utilizador criado, aguarda confirmação por e-mail.');
+    // 🆕 Adiciona email à tabela `users`
+    if (userId) {
+      const { error: upsertError } = await supabase.from('users').upsert([
+        {
+          id: userId,
+          name: name,
+          email: email,
+          role: 'user'
+        }
+      ]);
 
-
-    setLoading(false);
-    Alert.alert('Sucesso', 'Conta criada. Verifique o seu e-mail.');
-    router.replace('/(auth)/signin/page');
+      if (upsertError) {
+        console.error('Erro ao inserir na tabela users:', upsertError);
+      } else {
+        console.log('Utilizador guardado na tabela users.');
+      }
   }
+
+  setLoading(false);
+  Alert.alert('Sucesso', 'Conta criada. Verifique o seu e-mail.');
+  router.replace('/(auth)/signin/page');
+}
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.azulescuro }}>
