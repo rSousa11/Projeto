@@ -264,7 +264,8 @@ export default function Profile() {
       {/* Modal Editar Perfil */}
       <Modalize
         ref={editarPerfilRef}
-        adjustToContentHeight
+        adjustToContentHeight = {false}
+        snapPoint={500}
         closeOnOverlayTap
         onOpen={() => setEditarPerfilOpen(true)}
         onClosed={() => setEditarPerfilOpen(false)}
@@ -405,7 +406,7 @@ export default function Profile() {
 
           <TouchableOpacity
             onPress={() => editarPerfilRef.current?.open()}
-            style={[styles.button, { backgroundColor: '#51cf66', marginBottom: 20 }]}
+            style={[styles.button, { backgroundColor: '#0e5cb3', marginBottom: 20 }]}
           >
             <Text style={{ color: '#fff', fontWeight: '600' }}>Editar perfil</Text>
           </TouchableOpacity>

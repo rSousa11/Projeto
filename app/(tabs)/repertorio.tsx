@@ -161,13 +161,13 @@ const Repertorio = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
       <View style={{ padding: 20, flex: 1 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', }}>📚 Repertório</Text>
+        <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20, textAlign: 'center',color: '#0e5cb3' }}>📚 Repertório</Text>
 
         {role === 'admin' && (
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
             style={{
-              backgroundColor: '#007bff',
+              backgroundColor: '#0e5cb3',
               padding: 12,
               borderRadius: 8,
               alignItems: 'center',
@@ -227,7 +227,7 @@ const Repertorio = () => {
                         style={{
                           fontSize: 16,
                           textDecorationLine: 'underline',
-                          color: '#2980b9',
+                          color: '#2583c1',
                         }}
                       >
                         {item.titulo || item.nome}
@@ -262,7 +262,7 @@ const Repertorio = () => {
                       <TouchableOpacity
                         onPress={() => abrirModalEditar(item.id, item.link, item.titulo)}
                         style={{
-                          backgroundColor: '#f1c40f',
+                          backgroundColor: 'orange',
                           paddingHorizontal: 12,
                           paddingVertical: 6,
                           borderRadius: 6,
@@ -273,7 +273,7 @@ const Repertorio = () => {
                       <TouchableOpacity
                         onPress={() => handleDeletePDF(item.id, item.nome)}
                         style={{
-                          backgroundColor: '#e74c3c',
+                          backgroundColor: 'red',
                           paddingHorizontal: 12,
                           paddingVertical: 6,
                           borderRadius: 6,
@@ -428,7 +428,7 @@ const Repertorio = () => {
                   style={{
                     paddingHorizontal: 12,
                     paddingVertical: 8,
-                    backgroundColor: '#27ae60',
+                    backgroundColor: '#0e5cb3',
                     borderRadius: 6,
                   }}
                 >

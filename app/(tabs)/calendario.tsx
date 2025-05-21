@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ImageBackground,
   Modal,
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Modalize } from 'react-native-modalize';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
+
 
 
 const Calendario = () => {
@@ -40,6 +42,7 @@ const Calendario = () => {
 
   const [dataEvento, setDataEvento] = useState(new Date());
   const [mostrarDatePicker, setMostrarDatePicker] = useState(false);
+  
 
 
   const eventosDoDia = eventosLista.filter(ev => ev.data?.slice(0, 10) === selectedDate);
@@ -108,8 +111,9 @@ const Calendario = () => {
       data.forEach(ev => {
         marcados[ev.data?.slice(0, 10)] = {
           marked: true,
-          dotColor: 'blue'
+          dots: [{ key: 'evento', color: 'red', selectedDotColor: 'red' }]
         };
+
       });
       setEventosMarcados(marcados);
       setEventosLista(data);
@@ -203,6 +207,12 @@ const Calendario = () => {
       ]
     );
   };
+  const formatarData = (dataISO: string) => {
+    const [ano, mes, dia] = dataISO.split('-');
+    return `${dia}/${mes}/${ano}`;
+  };
+
+
 
   const iniciarEdicao = (evento: any) => {
     setTitulo(evento.titulo);
@@ -235,14 +245,19 @@ const Calendario = () => {
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
       >
-        {isAdmin && (
-          <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
+        
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0e5cb3' }}>
+            Eventos FRC
+          </Text>
+
+          {isAdmin && (
             <TouchableOpacity
               onPress={() => setShowAddModal(true)}
               style={{
                 backgroundColor: '#0e5cb3',
                 paddingVertical: 10,
-                paddingHorizontal: 14,  
+                paddingHorizontal: 14,
                 borderRadius: 10,
                 shadowColor: '#000',
                 shadowOpacity: 0.2,
@@ -251,25 +266,50 @@ const Calendario = () => {
                 elevation: 4,
               }}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>+ Evento</Text>
+              <Text style={{ color: 'white', fontWeight: '600' }}>+ Evento</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
 
-        <Calendar
-          onDayPress={day => setSelectedDate(day.dateString)}
-          markedDates={{
-            ...eventosMarcados,
-            [selectedDate]: {
-              ...(eventosMarcados[selectedDate] || {}),
-              selected: true,
-              selectedColor: '#0e5cb3'
-            }
-          }}
-        />
+        <ImageBackground
+            source={require('../../assets/images/frc.png')}
+            resizeMode="cover"
+            style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}
+          >
+            {/* transparencia do logo da frc */}
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.9)', padding: 10 }}>
+              
+              
+              <Calendar
+                markingType="multi-dot"
+                onDayPress={day => setSelectedDate(day.dateString)}
+                markedDates={{
+                  ...eventosMarcados,
+                  [selectedDate]: {
+                    ...(eventosMarcados[selectedDate] || {}),
+                    selected: true,
+                    selectedColor: '#0e5cb3',
+                  },
+                }}
+                style={{ backgroundColor: 'transparent' }}
+                theme={{
+                  calendarBackground: 'transparent',
+                  arrowColor: '#0e5cb3',
+                  textSectionTitleColor: '#444',
+                  dayTextColor: '#000',
+                  todayTextColor: '#40afd2',
+                  selectedDayTextColor: '#fff',
+                  selectedDayBackgroundColor: '#0e5cb3',
+                }}
+              />
+
+            </View>
+          </ImageBackground>
+
+
 
         <Text style={{ marginTop: 20, textAlign: 'center', fontSize: 16, color: '#555' }}>
-          Data selecionada: {selectedDate || 'Nenhuma'}
+          Data selecionada: {selectedDate ? formatarData(selectedDate) : 'Nenhuma'}
         </Text>
 
         {selectedDate && (
@@ -285,36 +325,41 @@ const Calendario = () => {
                   <Text style={styles.eventTitle}>{item.titulo}</Text>
 
                   <View style={styles.eventActions}>
-                    <TouchableOpacity
-                      onPress={() => guardarPresencaInline(item.id, 'sim')}
-                      style={[styles.presencaButton, {
-                        backgroundColor: presencasUtilizador[item.id] === 'sim' ? 'green' : '#eee'
-                      }]}
-                    >
-                      <Text style={{ color: presencasUtilizador[item.id] === 'sim' ? 'white' : 'black' }}>✔️</Text>
-                    </TouchableOpacity>
+                    {/* Só mostrar botões de presença se o evento for hoje ou no futuro */}
+                    {item.data?.slice(0, 10) >= hoje && (
+                      <>
+                        <TouchableOpacity
+                          onPress={() => guardarPresencaInline(item.id, 'sim')}
+                          style={[styles.presencaButton, {
+                            backgroundColor: presencasUtilizador[item.id] === 'sim' ? 'green' : '#eee'
+                          }]}
+                        >
+                          <Text style={{ color: presencasUtilizador[item.id] === 'sim' ? 'white' : 'black' }}>Vou ✔️</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={() => guardarPresencaInline(item.id, 'nao')}
-                      style={[styles.presencaButton, {
-                        backgroundColor: presencasUtilizador[item.id] === 'nao' ? 'red' : '#eee'
-                      }]}
-                    >
-                      <Text style={{ color: presencasUtilizador[item.id] === 'nao' ? 'white' : 'black' }}>❌</Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => guardarPresencaInline(item.id, 'nao')}
+                          style={[styles.presencaButton, {
+                            backgroundColor: presencasUtilizador[item.id] === 'nao' ? 'red' : '#eee'
+                          }]}
+                        >
+                          <Text style={{ color: presencasUtilizador[item.id] === 'nao' ? 'white' : 'black' }}>Não Vou ❌</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
 
                     <View style={{ alignItems: 'flex-end' }}>
                       <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
-                        <Text style={{ fontSize: 12, color: '#0e5cb3' }}>Mais detalhes</Text>
+                        <Text style={{ fontSize: 14, color: '#40afd2' }}>Mais detalhes</Text>
                       </TouchableOpacity>
 
                       {isAdmin && (
                         <View style={{ flexDirection: 'row', marginTop: 5 }}>
                           <TouchableOpacity onPress={() => iniciarEdicao(item)}>
-                            <Text style={{ fontSize: 12, color: 'orange', marginRight: 10 }}> Editar</Text>
+                            <Text style={{ fontSize: 14, color: 'orange', marginRight: 10 }}> Editar</Text>
                           </TouchableOpacity>
                           <TouchableOpacity onPress={() => removerEvento(item.id)}>
-                            <Text style={{ fontSize: 12, color: 'red' }}> Remover</Text>
+                            <Text style={{ fontSize: 14, color: 'red' }}> Remover</Text>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -322,6 +367,7 @@ const Calendario = () => {
                   </View>
                 </View>
               ))
+
             )}
           </>
         )}
@@ -338,12 +384,13 @@ const Calendario = () => {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.eventTitle}>{item.titulo}</Text>
                   <Text style={{ color: '#666' }}>
-                    {item.data?.slice(0, 10)}
+                    {formatarData(item.data?.slice(0, 10))}
                   </Text>
+
                 </View>
 
                 <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
-                  <Text style={{ color: '#0e5cb3', fontSize: 12 }}>Mais detalhes</Text>
+                  <Text style={{ color: '#40afd2', fontSize: 14 }}>Mais detalhes</Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -389,23 +436,29 @@ const Calendario = () => {
               style={styles.inputStyle}
             />
 
-            <TouchableOpacity onPress={() => setMostrarDatePicker(true)} style={[styles.inputStyle, { marginTop: 10 }]}>
-              <Text style={{ color: '#000' }}>
-                {dataEvento.toISOString().slice(0, 10)}
-              </Text>
-            </TouchableOpacity>
-
-            {mostrarDatePicker && (
-              <DateTimePicker
-                value={dataEvento}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setMostrarDatePicker(false);
-                  if (selectedDate) setDataEvento(selectedDate);
+            <TouchableOpacity
+                onPress={() => {
+                  setTimeout(() => setMostrarDatePicker(true), 100);
                 }}
-              />
-            )}
+                style={[styles.inputStyle, { marginTop: 10 }]}
+              >
+                <Text style={{ color: '#000' }}>
+                  {formatarData(dataEvento.toISOString().slice(0, 10))}
+                </Text>
+              </TouchableOpacity>
+
+              {mostrarDatePicker && (
+                <DateTimePicker
+                  value={dataEvento}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setMostrarDatePicker(false);
+                    if (selectedDate) setDataEvento(selectedDate);
+                  }}
+                />
+              )}
+
 
             <ModalButtons
               onCancel={() => setShowAddModal(false)}
@@ -417,10 +470,12 @@ const Calendario = () => {
       </Modal>
 
 
+
       {/* Modalize - Lista de presenças */}
       <Modalize
         ref={modalizeRef}
-        adjustToContentHeight
+        snapPoint={500}
+        adjustToContentHeight = {false}
         handleStyle={{ backgroundColor: '#ccc' }}
         modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
         onOpen={() => setModalOpen(true)}
@@ -432,7 +487,7 @@ const Calendario = () => {
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
 
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10, textAlign: 'center', marginTop: 20 }}>
+          <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 50, textAlign: 'center', marginTop: 20 }}>
             Lista de presenças
           </Text>
 
@@ -442,10 +497,10 @@ const Calendario = () => {
             <Text style={{ color: '#999', textAlign: 'center' }}>Nenhuma presença registada.</Text>
           ) : (
             presencasEventoSelecionado.map((p, index) => (
-              <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ color: '#000', fontWeight: 'bold' }}>{p.user_name}</Text>
+              <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical:10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}>
+                <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>{p.user_name}</Text>
                 <Text style={{ color: p.resposta === 'sim' ? 'green' : 'red' }}>
-                  {p.resposta === 'sim' ? '✔️' : '❌'}
+                  {p.resposta === 'sim' ? 'Vai ✔️' : 'Não Vai ❌'}
                 </Text>
               </View>
             ))
