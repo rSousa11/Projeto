@@ -43,6 +43,11 @@ const Calendario = () => {
 
 
   const eventosDoDia = eventosLista.filter(ev => ev.data?.slice(0, 10) === selectedDate);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const eventosFuturos = eventosLista
+    .filter(ev => ev.data?.slice(0, 10) > hoje)
+    .sort((a, b) => a.data.localeCompare(b.data));
+
 
   useFocusEffect(
     useCallback(() => {
@@ -222,12 +227,35 @@ const Calendario = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+        
+
       <KeyboardAwareScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: 80,  }}
         extraScrollHeight={40}
         enableOnAndroid
         keyboardShouldPersistTaps="handled"
       >
+        {isAdmin && (
+          <View style={{ alignItems: 'flex-end', marginBottom: 10 }}>
+            <TouchableOpacity
+              onPress={() => setShowAddModal(true)}
+              style={{
+                backgroundColor: '#0e5cb3',
+                paddingVertical: 10,
+                paddingHorizontal: 14,  
+                borderRadius: 10,
+                shadowColor: '#000',
+                shadowOpacity: 0.2,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 4,
+                elevation: 4,
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>+ Evento</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Calendar
           onDayPress={day => setSelectedDate(day.dateString)}
           markedDates={{
@@ -235,7 +263,7 @@ const Calendario = () => {
             [selectedDate]: {
               ...(eventosMarcados[selectedDate] || {}),
               selected: true,
-              selectedColor: '#1e90ff'
+              selectedColor: '#0e5cb3'
             }
           }}
         />
@@ -246,7 +274,7 @@ const Calendario = () => {
 
         {selectedDate && (
           <>
-            <Text style={{ fontSize: 20, marginTop: 20, fontWeight: 'bold', color: '#1e90ff' }}>
+            <Text style={{ fontSize: 20, marginTop: 20, fontWeight: 'bold', color: '#0e5cb3' }}>
               Eventos neste dia:
             </Text>
             {eventosDoDia.length === 0 ? (
@@ -277,7 +305,7 @@ const Calendario = () => {
 
                     <View style={{ alignItems: 'flex-end' }}>
                       <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
-                        <Text style={{ fontSize: 12, color: '#1e90ff' }}>Mais detalhes</Text>
+                        <Text style={{ fontSize: 12, color: '#0e5cb3' }}>Mais detalhes</Text>
                       </TouchableOpacity>
 
                       {isAdmin && (
@@ -297,23 +325,33 @@ const Calendario = () => {
             )}
           </>
         )}
-
-        {selectedDate && isAdmin && (
-          <TouchableOpacity
-            onPress={() => setShowAddModal(true)}
-            style={{
-              backgroundColor: '#1e90ff',
-              padding: 14,
-              borderRadius: 12,
-              alignItems: 'center',
-              marginTop: 30,
-            }}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-              + Adicionar Evento
+        
+        
+        {eventosFuturos.length > 0 && (
+          <View style={{ marginTop: 40 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#0e5cb3', marginBottom: 10 }}>
+              Próximos eventos
             </Text>
-          </TouchableOpacity>
+
+            {eventosFuturos.map((item) => (
+              <View key={item.id} style={styles.eventRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.eventTitle}>{item.titulo}</Text>
+                  <Text style={{ color: '#666' }}>
+                    {item.data?.slice(0, 10)}
+                  </Text>
+                </View>
+
+                <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
+                  <Text style={{ color: '#0e5cb3', fontSize: 12 }}>Mais detalhes</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         )}
+
+
+        
       </KeyboardAwareScrollView>
 
       {/* Modal Editar Evento */}
@@ -492,7 +530,7 @@ const ModalButtons = ({ onCancel, onConfirm, confirmText }: any) => (
       <Text style={{ color: '#555' }}>Cancelar</Text>
     </TouchableOpacity>
     <TouchableOpacity onPress={onConfirm}>
-      <Text style={{ color: '#1e90ff', fontWeight: 'bold' }}>{confirmText}</Text>
+      <Text style={{ color: '#0e5cb3', fontWeight: 'bold' }}>{confirmText}</Text>
     </TouchableOpacity>
   </View>
 );

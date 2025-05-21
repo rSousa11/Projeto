@@ -124,59 +124,66 @@ export default function Profile() {
       const user = data?.user;
       if (!user) return;
 
-      const fileExt = imageUri.split('.').pop()?.toLowerCase();
-      const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-      if (!fileExt || !allowedExts.includes(fileExt)) {
-        Alert.alert('Erro', 'Tipo de imagem não suportado.');
-        return;
-      }
-
-      const mimeMap: Record<string, string> = {
-        jpg: 'image/jpeg',
-        jpeg: 'image/jpeg',
-        png: 'image/png',
-        gif: 'image/gif',
-        webp: 'image/webp',
-      };
-
-      const mimeType = mimeMap[fileExt] || 'image/jpeg';
-      const fileName = `${user.id}.${fileExt}`;
-
+      // Obter o blob do URI da imagem
       const response = await fetch(imageUri);
       const blob = await response.blob();
+      const contentType = blob.type;
 
+      // Sanitizar o nome do ficheiro
+      const originalName = imageUri.split('/').pop() || 'imagem.jpg';
+      const sanitizedName = originalName
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9._-]/g, "");
+
+      const filename = `${user.id}_${Date.now()}_${sanitizedName}`;
+      const filePath = filename;
+
+      // Enviar imagem para o bucket 'trabalhos'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, blob, {
-          contentType: mimeType,
-          upsert: true,
+        .upload(filePath, blob, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType,
+          metadata: { owner: user.id },
         });
 
       if (uploadError) {
-        Alert.alert('Erro ao carregar imagem', uploadError.message);
+        Alert.alert("Erro", "Erro ao enviar imagem.");
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      const publicUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+      // Obter URL pública
+      const publicURL = `https://nkorqkyiytalpxyjgbjq.supabase.co/storage/v1/object/public/trabalhos/${filePath}`;
 
+      // Obter fotos existentes
+      const { data: perfil } = await supabase
+        .from('users')
+        .select('image')
+        .eq('id', user.id)
+        .single();
+
+      const novasFotos = [...(perfil?.image || []), publicURL];
+
+      // Atualizar a tabela 'users' com a nova imagem
       const { error: updateError } = await supabase
         .from('users')
-        .update({ image: publicUrl })
+        .update({ image: novasFotos })
         .eq('id', user.id);
 
       if (updateError) {
-        Alert.alert('Erro ao atualizar perfil', updateError.message);
-        return;
+        Alert.alert("Erro", "Erro ao atualizar perfil com a nova foto.");
+      } else {
+        Alert.alert("Sucesso", "Foto enviada com sucesso!");
       }
-
-      setUserInfo((prev) => (prev ? { ...prev, image: publicUrl } : null));
     } catch (err: any) {
-      Alert.alert('Erro', err.message);
+      Alert.alert('Erro', err.message || 'Erro inesperado.');
     } finally {
       setUploading(false);
     }
   };
+
 
   const handleSelecionarInstrumento = async (inst: string) => {
     setInstrumento(inst);
