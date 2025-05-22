@@ -209,7 +209,7 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Filarmónica Recreativa Cortenses</Text>
+      <Text style={styles.title}>Filarmónica Recreativa Cortense</Text>
       <Text style={styles.subtitle}>Membros ({members.length})</Text>
 
 
