@@ -3,12 +3,6 @@ import { supabase } from '@/lib/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInUp
-} from 'react-native-reanimated';
-
 import {
   ActivityIndicator,
   Alert,
@@ -21,7 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import { Modalize } from 'react-native-modalize';
+import Animated, { FadeIn, FadeOut, SlideInUp } from 'react-native-reanimated';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 type UserInfo = {
@@ -62,7 +58,6 @@ export default function Profile() {
         Alert.alert('Permissão necessária', 'A app precisa de acesso às fotos.');
       }
     })();
-
     fetchUserInfo();
   }, []);
 
@@ -72,18 +67,15 @@ export default function Profile() {
       const user = data?.user;
       if (!user) return;
 
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      if (userData) {
-        setUserInfo(userData);
-        setInstrumento(userData.instrumento || '');
-      }
+      setUserInfo({
+        id: user.id,
+        name: user.user_metadata?.name || '',
+        email: user.email || '',
+        role: user.user_metadata?.role || '',
+        image: user.user_metadata?.image || '',
+        instrumento: user.user_metadata?.instrumento || '',
+      });
+      setInstrumento(user.user_metadata?.instrumento || '');
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível obter os dados do utilizador.');
     } finally {
@@ -124,93 +116,67 @@ export default function Profile() {
       const user = data?.user;
       if (!user) return;
 
-      // Obter o blob do URI da imagem
       const response = await fetch(imageUri);
       const blob = await response.blob();
       const contentType = blob.type;
+      const filename = `${user.id}_${Date.now()}.jpg`;
+      const filePath = filename; 
 
-      // Sanitizar o nome do ficheiro
-      const originalName = imageUri.split('/').pop() || 'imagem.jpg';
-      const sanitizedName = originalName
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9._-]/g, "");
 
-      const filename = `${user.id}_${Date.now()}_${sanitizedName}`;
-      const filePath = filename;
-
-      // Enviar imagem para o bucket 'trabalhos'
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, blob, {
-          cacheControl: '3600',
-          upsert: false,
           contentType,
-          metadata: { owner: user.id },
+          upsert: true,
         });
 
       if (uploadError) {
-        Alert.alert("Erro", "Erro ao enviar imagem.");
+        Alert.alert("Erro", "Erro ao enviar imagem para o Supabase.");
         return;
       }
 
-      // Obter URL pública
-      const publicURL = `https://nkorqkyiytalpxyjgbjq.supabase.co/storage/v1/object/public/trabalhos/${filePath}`;
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const publicURL = urlData?.publicUrl;
+      console.log("Public URL:", publicURL);
 
-      // Obter fotos existentes
-      const { data: perfil } = await supabase
-        .from('users')
-        .select('image')
-        .eq('id', user.id)
-        .single();
 
-      const novasFotos = [...(perfil?.image || []), publicURL];
+      if (!publicURL) {
+        Alert.alert("Erro", "Não foi possível obter o URL da imagem.");
+        return;
+      }
 
-      // Atualizar a tabela 'users' com a nova imagem
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ image: novasFotos })
-        .eq('id', user.id);
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { ...user.user_metadata, image: publicURL },
+      });
 
-      if (updateError) {
-        Alert.alert("Erro", "Erro ao atualizar perfil com a nova foto.");
+      if (metadataError) {
+        Alert.alert("Erro", "Erro ao atualizar os dados do utilizador.");
       } else {
-        Alert.alert("Sucesso", "Foto enviada com sucesso!");
+        setUserInfo((prev) => prev ? { ...prev, image: publicURL } : null);
+        await fetchUserInfo(); // força atualização completa
+
+        Alert.alert("Sucesso", "Foto de perfil atualizada!");
       }
     } catch (err: any) {
-      Alert.alert('Erro', err.message || 'Erro inesperado.');
+      Alert.alert("Erro inesperado", err.message || "Erro ao atualizar a imagem.");
     } finally {
       setUploading(false);
     }
   };
 
-
   const handleSelecionarInstrumento = async (inst: string) => {
     setInstrumento(inst);
     modalRef.current?.close();
 
-    try {
-      const { data, error } = await supabase.auth.getUser();
-      const user = data?.user;
+    const { data } = await supabase.auth.getUser();
+    const user = data?.user;
+    if (!user) return;
 
-      if (!user) {
-        Alert.alert('Erro', 'Utilizador não autenticado.');
-        return;
-      }
+    await supabase.auth.updateUser({
+      data: { ...user.user_metadata, instrumento: inst },
+    });
 
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ instrumento: inst })
-        .eq('id', user.id);
-
-      if (updateError) {
-        Alert.alert('Erro ao guardar instrumento', updateError.message);
-      } else {
-        setUserInfo((prev) => (prev ? { ...prev, instrumento: inst } : null));
-      }
-    } catch (err: any) {
-      Alert.alert('Erro', err.message || 'Erro inesperado ao selecionar instrumento.');
-    }
+    setUserInfo((prev) => (prev ? { ...prev, instrumento: inst } : null));
   };
 
   const handleGuardarAlteracoes = async () => {
@@ -218,21 +184,16 @@ export default function Profile() {
     const user = data?.user;
     if (!user || !userInfo) return;
 
-    const { name, email } = userInfo;
+    await supabase.auth.updateUser({
+      data: {
+        ...user.user_metadata,
+        name: userInfo.name,
+        instrumento: instrumento,
+      },
+    });
 
-    try {
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ name, email })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      Alert.alert('Sucesso', 'Perfil atualizado com sucesso.');
-      editarPerfilRef.current?.close();
-    } catch (err: any) {
-      Alert.alert('Erro', err.message || 'Não foi possível guardar as alterações.');
-    }
+    Alert.alert('Sucesso', 'Perfil atualizado com sucesso.');
+    editarPerfilRef.current?.close();
   };
 
   if (loading) {
@@ -245,128 +206,104 @@ export default function Profile() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
-      {/* Botão de logout no canto superior direito */}
-      <Animated.View
-          entering={FadeIn.duration(400)}
-          exiting={FadeOut.duration(300)}
-          layout={SlideInUp}
-          style={styles.logoutButtonContainer}
-        >
+      <Animatable.View animation="fadeInUp" duration={1000} style={{ padding: 1, flex: 1 }}>
+        <Animated.View entering={FadeIn.duration(400)} exiting={FadeOut.duration(300)} layout={SlideInUp} style={styles.logoutButtonContainer}>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <MaterialCommunityIcons name="logout" size={22} color="#ff6b6b" />
+            <MaterialCommunityIcons name="logout" size={25} color="#ff6b6b" />
           </TouchableOpacity>
         </Animated.View>
 
-
-
-
-
-      {/* Modal Editar Perfil */}
-      <Modalize
-        ref={editarPerfilRef}
-        adjustToContentHeight = {false}
-        snapPoint={500}
-        closeOnOverlayTap
-        onOpen={() => setEditarPerfilOpen(true)}
-        onClosed={() => setEditarPerfilOpen(false)}
-        modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}
-        withReactModal
-      >
-        <TouchableOpacity onPress={() => editarPerfilRef.current?.close()} style={styles.closeButton}>
-          <Text style={styles.closeButtonText}>✕</Text>
-        </TouchableOpacity>
-
-        <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>Editar Perfil</Text>
-
-        <Text style={{ marginBottom: 4 }}>Nome:</Text>
-        <TextInput
-          value={userInfo?.name}
-          onChangeText={(text) => setUserInfo((prev) => (prev ? { ...prev, name: text } : null))}
-          style={styles.input}
-        />
-
-        <Text style={{ marginBottom: 4 }}>Email:</Text>
-        <TextInput
-          value={userInfo?.email}
-          onChangeText={(text) => setUserInfo((prev) => (prev ? { ...prev, email: text } : null))}
-          style={styles.input}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-
-        <TouchableOpacity onPress={handleGuardarAlteracoes} style={[styles.button, { backgroundColor: '#339af0' }]}>
-          <Text style={{ color: '#fff', fontWeight: '600' }}>Guardar alterações</Text>
-        </TouchableOpacity>
-      </Modalize>
-
-      {/* Modal Selecionar Instrumento */}
-      <Modalize
-        ref={modalRef}
-        adjustToContentHeight
-        closeOnOverlayTap={false}
-        panGestureEnabled={false}
-        withReactModal
-        handleStyle={{ backgroundColor: '#ccc' }}
-        modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-        scrollViewProps={{ bounces: false }}
-        onOpen={() => setModalOpen(true)}
-        onClosed={() => setModalOpen(false)}
-      >
-        <View style={{ padding: 24 }}>
-          <TouchableOpacity onPress={() => modalRef.current?.close()} style={styles.closeButton}>
+        <Modalize
+          ref={editarPerfilRef}
+          adjustToContentHeight={false}
+          snapPoint={500}
+          closeOnOverlayTap
+          onOpen={() => setEditarPerfilOpen(true)}
+          onClosed={() => setEditarPerfilOpen(false)}
+          modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 }}
+          withReactModal
+        >
+          <TouchableOpacity onPress={() => editarPerfilRef.current?.close()} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
 
-          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
-            Seleciona o teu instrumento
-          </Text>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>Editar Perfil</Text>
+          <Text style={{ marginBottom: 4 }}>Nome:</Text>
+          <TextInput
+            value={userInfo?.name}
+            onChangeText={(text) => setUserInfo((prev) => (prev ? { ...prev, name: text } : null))}
+            style={styles.input}
+          />
 
-          <ScrollView style={{ maxHeight: 400 }}>
-            {instrumentosLista.map((inst) => {
-              const icon = iconesInstrumentos[inst] || { name: 'music-note', color: '#adb5bd' };
-              const isSelected = instrumento === inst;
+          <TouchableOpacity onPress={handleGuardarAlteracoes} style={[styles.button, { backgroundColor: '#0e5cb3' }]}>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Guardar alterações</Text>
+          </TouchableOpacity>
+        </Modalize>
 
-              return (
-                <TouchableOpacity
-                  key={inst}
-                  onPress={() => handleSelecionarInstrumento(inst)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingVertical: 12,
-                    borderBottomWidth: 1,
-                    borderBottomColor: '#dee2e6',
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <MaterialCommunityIcons
-                      name={icon.name}
-                      color={icon.color}
-                      size={20}
-                      style={{ marginRight: 12 }}
-                    />
-                    <Text style={{ fontSize: 16 }}>{inst}</Text>
-                  </View>
-                  {isSelected && <MaterialCommunityIcons name="check" size={18} color="#40c057" />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modalize>
-
-      {/* Conteúdo Principal */}
-      <Animated.View
-          entering={FadeIn.duration(400)}
-          layout={SlideInUp}
-          style={{ alignItems: 'center', paddingTop: 50 }}
+        <Modalize
+          ref={modalRef}
+          adjustToContentHeight
+          closeOnOverlayTap={false}
+          panGestureEnabled={false}
+          withReactModal
+          handleStyle={{ backgroundColor: '#ccc' }}
+          modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+          scrollViewProps={{ bounces: false }}
+          onOpen={() => setModalOpen(true)}
+          onClosed={() => setModalOpen(false)}
         >
+          <View style={{ padding: 24 }}>
+            <TouchableOpacity onPress={() => modalRef.current?.close()} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>
+              Seleciona o teu instrumento
+            </Text>
+
+            <ScrollView style={{ maxHeight: 400 }}>
+              {instrumentosLista.map((inst) => {
+                const icon = iconesInstrumentos[inst] || { name: 'music-note', color: '#adb5bd' };
+                const isSelected = instrumento === inst;
+
+                return (
+                  <TouchableOpacity
+                    key={inst}
+                    onPress={() => handleSelecionarInstrumento(inst)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#dee2e6',
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <MaterialCommunityIcons
+                        name={icon.name}
+                        color={icon.color}
+                        size={20}
+                        style={{ marginRight: 12 }}
+                      />
+                      <Text style={{ fontSize: 16 }}>{inst}</Text>
+                    </View>
+                    {isSelected && <MaterialCommunityIcons name="check" size={18} color="#40c057" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </Modalize>
+
+        <Animated.View entering={FadeIn.duration(400)} layout={SlideInUp} style={{ alignItems: 'center', paddingTop: 50 }}>
           <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
+            
             <View>
+              
               <Image
                 source={
-                  userInfo?.image
+                  userInfo?.image && userInfo.image.startsWith('http')
                     ? { uri: userInfo.image }
                     : require('@/assets/images/default-avatar.png')
                 }
@@ -392,11 +329,7 @@ export default function Profile() {
           </Text>
         </Animated.View>
 
-        <Animated.View
-          entering={FadeIn.duration(400).delay(100)}
-          layout={SlideInUp.delay(100)}
-          style={{ flex: 1, alignItems: 'center', padding: 20 }}
-        >
+        <Animated.View entering={FadeIn.duration(400).delay(100)} layout={SlideInUp.delay(100)} style={{ flex: 1, alignItems: 'center', padding: 20 }}>
           <Text style={{ fontSize: 28, fontWeight: '600', color: '#212529', marginBottom: 8 }}>
             {userInfo?.name}
           </Text>
@@ -452,8 +385,9 @@ export default function Profile() {
             </TouchableOpacity>
           </View>
         </Animated.View>
-
+      </Animatable.View>
     </SafeAreaView>
+    
   );
 }
 
@@ -488,7 +422,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
   },
-
   logoutButtonContainer: {
     position: 'absolute',
     top: 50,
@@ -507,6 +440,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-
 });

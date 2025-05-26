@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Animatable from 'react-native-animatable';
 import { Calendar } from 'react-native-calendars';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Modalize } from 'react-native-modalize';
@@ -235,278 +236,285 @@ const Calendario = () => {
 
   if (loading) return <ActivityIndicator size="large" style={{ marginTop: 100 }} />;
 
+
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        
-
-      <KeyboardAwareScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 80,  }}
-        extraScrollHeight={40}
-        enableOnAndroid
-        keyboardShouldPersistTaps="handled"
-      >
-        
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0e5cb3' }}>
-            Eventos FRC
-          </Text>
-
-          {isAdmin && (
-            <TouchableOpacity
-              onPress={() => setShowAddModal(true)}
-              style={{
-                backgroundColor: '#0e5cb3',
-                paddingVertical: 10,
-                paddingHorizontal: 14,
-                borderRadius: 10,
-                shadowColor: '#000',
-                shadowOpacity: 0.2,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 4,
-                elevation: 4,
-              }}
+      <Animatable.View
+              animation="fadeInUp"
+              duration={1000}
+              style={{ padding: 1, flex: 1 }}
             >
-              <Text style={{ color: 'white', fontWeight: '600' }}>+ Evento</Text>
-            </TouchableOpacity>
-          )}
-        </View>
 
-        <ImageBackground
-            source={require('../../assets/images/frc.png')}
-            resizeMode="cover"
-            style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}
-          >
-            {/* transparencia do logo da frc */}
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.9)', padding: 10 }}>
-              
-              
-              <Calendar
-                markingType="multi-dot"
-                onDayPress={day => setSelectedDate(day.dateString)}
-                markedDates={{
-                  ...eventosMarcados,
-                  [selectedDate]: {
-                    ...(eventosMarcados[selectedDate] || {}),
-                    selected: true,
-                    selectedColor: '#0e5cb3',
-                  },
-                }}
-                style={{ backgroundColor: 'transparent' }}
-                theme={{
-                  calendarBackground: 'transparent',
-                  arrowColor: '#0e5cb3',
-                  textSectionTitleColor: '#444',
-                  dayTextColor: '#000',
-                  todayTextColor: '#40afd2',
-                  selectedDayTextColor: '#fff',
-                  selectedDayBackgroundColor: '#0e5cb3',
-                }}
-              />
-
-            </View>
-          </ImageBackground>
-
-
-
-        <Text style={{ marginTop: 20, textAlign: 'center', fontSize: 16, color: '#555' }}>
-          Data selecionada: {selectedDate ? formatarData(selectedDate) : 'Nenhuma'}
-        </Text>
-
-        {selectedDate && (
-          <>
-            <Text style={{ fontSize: 20, marginTop: 20, fontWeight: 'bold', color: '#0e5cb3' }}>
-              Eventos neste dia:
-            </Text>
-            {eventosDoDia.length === 0 ? (
-              <Text style={{ marginTop: 5, color: '#aaa' }}>Nenhum evento.</Text>
-            ) : (
-              eventosDoDia.map((item) => (
-                <View key={item.id} style={styles.eventRow}>
-                  <Text style={styles.eventTitle}>{item.titulo}</Text>
-
-                  <View style={styles.eventActions}>
-                    {/* Só mostrar botões de presença se o evento for hoje ou no futuro */}
-                    {item.data?.slice(0, 10) >= hoje && (
-                      <>
-                        <TouchableOpacity
-                          onPress={() => guardarPresencaInline(item.id, 'sim')}
-                          style={[styles.presencaButton, {
-                            backgroundColor: presencasUtilizador[item.id] === 'sim' ? 'green' : '#eee'
-                          }]}
-                        >
-                          <Text style={{ color: presencasUtilizador[item.id] === 'sim' ? 'white' : 'black' }}>Vou ✔️</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          onPress={() => guardarPresencaInline(item.id, 'nao')}
-                          style={[styles.presencaButton, {
-                            backgroundColor: presencasUtilizador[item.id] === 'nao' ? 'red' : '#eee'
-                          }]}
-                        >
-                          <Text style={{ color: presencasUtilizador[item.id] === 'nao' ? 'white' : 'black' }}>Não Vou ❌</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
-                        <Text style={{ fontSize: 14, color: '#40afd2' }}>Mais detalhes</Text>
-                      </TouchableOpacity>
-
-                      {isAdmin && (
-                        <View style={{ flexDirection: 'row', marginTop: 5 }}>
-                          <TouchableOpacity onPress={() => iniciarEdicao(item)}>
-                            <Text style={{ fontSize: 14, color: 'orange', marginRight: 10 }}> Editar</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity onPress={() => removerEvento(item.id)}>
-                            <Text style={{ fontSize: 14, color: 'red' }}> Remover</Text>
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                </View>
-              ))
-
-            )}
-          </>
-        )}
-        
-        
-        {eventosFuturos.length > 0 && (
-          <View style={{ marginTop: 40 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#0e5cb3', marginBottom: 10 }}>
-              Próximos eventos
+        <KeyboardAwareScrollView
+          contentContainerStyle={{ padding: 20, paddingBottom: 80,  }}
+          extraScrollHeight={40}
+          enableOnAndroid
+          keyboardShouldPersistTaps="handled"
+        >
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0e5cb3' }}>
+              Calendário FRC
             </Text>
 
-            {eventosFuturos.map((item) => (
-              <View key={item.id} style={styles.eventRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.eventTitle}>{item.titulo}</Text>
-                  <Text style={{ color: '#666' }}>
-                    {formatarData(item.data?.slice(0, 10))}
-                  </Text>
-
-                </View>
-
-                <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
-                  <Text style={{ color: '#40afd2', fontSize: 14 }}>Mais detalhes</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-
-        
-      </KeyboardAwareScrollView>
-
-      {/* Modal Editar Evento */}
-      <Modal visible={showEditModal} animationType="slide" transparent>
-        <View style={styles.modalWrapper}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Editar Evento</Text>
-            <TextInput
-              placeholder="Nome do evento"
-              placeholderTextColor="#aaa"
-              value={titulo}
-              onChangeText={setTitulo}
-              style={styles.inputStyle}
-            />
-            <ModalButtons
-              onCancel={() => setShowEditModal(false)}
-              onConfirm={guardarEdicao}
-              confirmText="Guardar"
-            />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal Adicionar Evento */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalWrapper}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Adicionar Evento</Text>
-
-            <TextInput
-              placeholder="Nome do evento"
-              placeholderTextColor="#aaa"
-              value={titulo}
-              onChangeText={setTitulo}
-              style={styles.inputStyle}
-            />
-
-            <TouchableOpacity
-                onPress={() => {
-                  setTimeout(() => setMostrarDatePicker(true), 100);
+            {isAdmin && (
+              <TouchableOpacity
+                onPress={() => setShowAddModal(true)}
+                style={{
+                  backgroundColor: '#0e5cb3',
+                  paddingVertical: 10,
+                  paddingHorizontal: 14,
+                  borderRadius: 10,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.2,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowRadius: 4,
+                  elevation: 4,
                 }}
-                style={[styles.inputStyle, { marginTop: 10 }]}
               >
-                <Text style={{ color: '#000' }}>
-                  {formatarData(dataEvento.toISOString().slice(0, 10))}
-                </Text>
+                <Text style={{ color: 'white', fontWeight: '600' }}>+ Evento</Text>
               </TouchableOpacity>
+            )}
+          </View>
 
-              {mostrarDatePicker && (
-                <DateTimePicker
-                  value={dataEvento}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setMostrarDatePicker(false);
-                    if (selectedDate) setDataEvento(selectedDate);
+          <ImageBackground
+              source={require('../../assets/images/frc.png')}
+              resizeMode="cover"
+              style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}
+            >
+              {/* transparencia do logo da frc */}
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.9)', padding: 10 }}>
+                
+                
+                <Calendar
+                  markingType="multi-dot"
+                  onDayPress={day => setSelectedDate(day.dateString)}
+                  markedDates={{
+                    ...eventosMarcados,
+                    [selectedDate]: {
+                      ...(eventosMarcados[selectedDate] || {}),
+                      selected: true,
+                      selectedColor: '#0e5cb3',
+                    },
+                  }}
+                  style={{ backgroundColor: 'transparent' }}
+                  theme={{
+                    calendarBackground: 'transparent',
+                    arrowColor: '#0e5cb3',
+                    textSectionTitleColor: '#444',
+                    dayTextColor: '#000',
+                    todayTextColor: '#40afd2',
+                    selectedDayTextColor: '#fff',
+                    selectedDayBackgroundColor: '#0e5cb3',
                   }}
                 />
-              )}
 
-
-            <ModalButtons
-              onCancel={() => setShowAddModal(false)}
-              onConfirm={adicionarEvento}
-              confirmText="Criar"
-            />
-          </View>
-        </View>
-      </Modal>
+              </View>
+            </ImageBackground>
 
 
 
-      {/* Modalize - Lista de presenças */}
-      <Modalize
-        ref={modalizeRef}
-        snapPoint={500}
-        adjustToContentHeight = {false}
-        handleStyle={{ backgroundColor: '#ccc' }}
-        modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-        onOpen={() => setModalOpen(true)}
-        onClosed={() => setModalOpen(false)}
-        withReactModal
-      >
-        <View style={{ padding: 24 }}>
-          <TouchableOpacity onPress={() => modalizeRef.current?.close()} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-
-          <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 50, textAlign: 'center', marginTop: 20 }}>
-            Lista de presenças
+          <Text style={{ marginTop: 20, textAlign: 'center', fontSize: 16, color: '#555' }}>
+            Data selecionada: {selectedDate ? formatarData(selectedDate) : 'Nenhuma'}
           </Text>
 
-          {loadingPresencas ? (
-            <ActivityIndicator size="small" />
-          ) : presencasEventoSelecionado.length === 0 ? (
-            <Text style={{ color: '#999', textAlign: 'center' }}>Nenhuma presença registada.</Text>
-          ) : (
-            presencasEventoSelecionado.map((p, index) => (
-              <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical:10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}>
-                <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>{p.user_name}</Text>
-                <Text style={{ color: p.resposta === 'sim' ? 'green' : 'red' }}>
-                  {p.resposta === 'sim' ? 'Vai ✔️' : 'Não Vai ❌'}
-                </Text>
-              </View>
-            ))
+          {selectedDate && (
+            <>
+              <Text style={{ fontSize: 20, marginTop: 20, fontWeight: 'bold', color: '#0e5cb3' }}>
+                Eventos neste dia:
+              </Text>
+              {eventosDoDia.length === 0 ? (
+                <Text style={{ marginTop: 5, color: '#aaa' }}>Nenhum evento.</Text>
+              ) : (
+                eventosDoDia.map((item) => (
+                  <View key={item.id} style={styles.eventRow}>
+                    <Text style={styles.eventTitle}>{item.titulo}</Text>
+
+                    <View style={styles.eventActions}>
+                      {/* Só mostrar botões de presença se o evento for hoje ou no futuro */}
+                      {item.data?.slice(0, 10) >= hoje && (
+                        <>
+                          <TouchableOpacity
+                            onPress={() => guardarPresencaInline(item.id, 'sim')}
+                            style={[styles.presencaButton, {
+                              backgroundColor: presencasUtilizador[item.id] === 'sim' ? 'green' : '#eee'
+                            }]}
+                          >
+                            <Text style={{ color: presencasUtilizador[item.id] === 'sim' ? 'white' : 'black' }}>Vou ✔️</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            onPress={() => guardarPresencaInline(item.id, 'nao')}
+                            style={[styles.presencaButton, {
+                              backgroundColor: presencasUtilizador[item.id] === 'nao' ? 'red' : '#eee'
+                            }]}
+                          >
+                            <Text style={{ color: presencasUtilizador[item.id] === 'nao' ? 'white' : 'black' }}>Não Vou ❌</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
+                          <Text style={{ fontSize: 14, color: '#40afd2' }}>Mais detalhes</Text>
+                        </TouchableOpacity>
+
+                        {isAdmin && (
+                          <View style={{ flexDirection: 'row', marginTop: 5 }}>
+                            <TouchableOpacity onPress={() => iniciarEdicao(item)}>
+                              <Text style={{ fontSize: 14, color: 'orange', marginRight: 10 }}> Editar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => removerEvento(item.id)}>
+                              <Text style={{ fontSize: 14, color: 'red' }}> Remover</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ))
+
+              )}
+            </>
           )}
-        </View>
-      </Modalize>
+          
+          
+          {eventosFuturos.length > 0 && (
+            <View style={{ marginTop: 40 }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#0e5cb3', marginBottom: 10 }}>
+                Próximos eventos
+              </Text>
+
+              {eventosFuturos.map((item) => (
+                <View key={item.id} style={styles.eventRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.eventTitle}>{item.titulo}</Text>
+                    <Text style={{ color: '#666' }}>
+                      {formatarData(item.data?.slice(0, 10))}
+                    </Text>
+
+                  </View>
+
+                  <TouchableOpacity onPress={() => abrirModalDetalhes(item.id)}>
+                    <Text style={{ color: '#40afd2', fontSize: 14 }}>Mais detalhes</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
+
+          
+        </KeyboardAwareScrollView>
+
+        {/* Modal Editar Evento */}
+        <Modal visible={showEditModal} animationType="slide" transparent>
+          <View style={styles.modalWrapper}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Editar Evento</Text>
+              <TextInput
+                placeholder="Nome do evento"
+                placeholderTextColor="#aaa"
+                value={titulo}
+                onChangeText={setTitulo}
+                style={styles.inputStyle}
+              />
+              <ModalButtons
+                onCancel={() => setShowEditModal(false)}
+                onConfirm={guardarEdicao}
+                confirmText="Guardar"
+              />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Modal Adicionar Evento */}
+        <Modal visible={showAddModal} animationType="slide" transparent>
+          <View style={styles.modalWrapper}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Adicionar Evento</Text>
+
+              <TextInput
+                placeholder="Nome do evento"
+                placeholderTextColor="#aaa"
+                value={titulo}
+                onChangeText={setTitulo}
+                style={styles.inputStyle}
+              />
+
+              <TouchableOpacity
+                  onPress={() => {
+                    setTimeout(() => setMostrarDatePicker(true), 100);
+                  }}
+                  style={[styles.inputStyle, { marginTop: 10 }]}
+                >
+                  <Text style={{ color: '#000' }}>
+                    {formatarData(dataEvento.toISOString().slice(0, 10))}
+                  </Text>
+                </TouchableOpacity>
+
+                {mostrarDatePicker && (
+                  <DateTimePicker
+                    value={dataEvento}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setMostrarDatePicker(false);
+                      if (selectedDate) setDataEvento(selectedDate);
+                    }}
+                  />
+                )}
+
+
+              <ModalButtons
+                onCancel={() => setShowAddModal(false)}
+                onConfirm={adicionarEvento}
+                confirmText="Criar"
+              />
+            </View>
+          </View>
+        </Modal>
+
+
+
+        {/* Modalize - Lista de presenças */}
+        <Modalize
+          ref={modalizeRef}
+          snapPoint={500}
+          adjustToContentHeight = {false}
+          handleStyle={{ backgroundColor: '#ccc' }}
+          modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+          onOpen={() => setModalOpen(true)}
+          onClosed={() => setModalOpen(false)}
+          withReactModal
+        >
+          <View style={{ padding: 24 }}>
+            <TouchableOpacity onPress={() => modalizeRef.current?.close()} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 50, textAlign: 'center', marginTop: 20 }}>
+              Lista de presenças
+            </Text>
+
+            {loadingPresencas ? (
+              <ActivityIndicator size="small" />
+            ) : presencasEventoSelecionado.length === 0 ? (
+              <Text style={{ color: '#999', textAlign: 'center' }}>Nenhuma presença registada.</Text>
+            ) : (
+              presencasEventoSelecionado.map((p, index) => (
+                <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical:10, borderBottomWidth: 1, borderBottomColor: '#ddd' }}>
+                  <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 16 }}>{p.user_name}</Text>
+                  <Text style={{ color: p.resposta === 'sim' ? 'green' : 'red' }}>
+                    {p.resposta === 'sim' ? 'Vai ✔️' : 'Não Vai ❌'}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        </Modalize>
+      </Animatable.View>  
     </SafeAreaView>
   );
 };
