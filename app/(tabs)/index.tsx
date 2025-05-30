@@ -152,6 +152,7 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
+      fetchMembers(); // <-- atualiza lista de membros ao voltar
       const parent = navigation.getParent?.();
       if (parent) {
         parent.setOptions({
@@ -173,6 +174,7 @@ export default function Home() {
     }, [modalOpen])
   );
 
+
   const renderItem = ({ item }: { item: UserItem }) => {
   const instrumentoInfo = item.instrumento
     ? iconesInstrumentos[item.instrumento] || { name: 'music-note', color: '#495057' }
@@ -182,7 +184,9 @@ export default function Home() {
     <TouchableOpacity style={styles.card} onPress={() => openModal(item)}>
       <Image
         source={{
-          uri: item.image || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(item.name),
+          uri: item.image
+            ? `${item.image}?t=${Date.now()}`
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}`,
         }}
         style={styles.avatar}
       />
@@ -209,17 +213,23 @@ export default function Home() {
 
 
   return (
-    <Animatable.View
-            animation="fadeInUp"
-            duration={1000}
-            style={{ padding: 1, flex: 1 }}
-          >
+    <Animatable.View animation="fadeInUp" duration={1000} style={{ flex: 1 }}>
+      {/* Cabeçalho com fundo branco */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerRow}>
+          <Image
+            source={require('@/assets/images/frc.png')} // substitui com o caminho correto
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Filarmónica Recreativa Cortense</Text>
+        </View>
+        
+      </View>
 
+      {/* Lista de membros */}
       <View style={styles.container}>
-        <Text style={styles.title}>Filarmónica Recreativa Cortense</Text>
         <Text style={styles.subtitle}>Membros ({members.length})</Text>
-
-
         {loading ? (
           <ActivityIndicator size="large" />
         ) : (
@@ -232,138 +242,136 @@ export default function Home() {
             contentContainerStyle={{ paddingBottom: 20 }}
           />
         )}
-
-        <Modalize
-          ref={modalRef}
-          adjustToContentHeight={false}
-          snapPoint={500}
-          handleStyle={{ backgroundColor: '#ccc' }}
-          modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-          onOpen={() => setModalOpen(true)}
-          onClosed={() => {
-            setModalOpen(false);
-            setSelectedUser(null);
-          }}
-          withReactModal
-        >
-          <View style={{ padding: 24, alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => modalRef.current?.close()} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-
-            <Image
-              source={{
-                uri:
-                  selectedUser?.image ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser?.name || '')}`,
-              }}
-              style={styles.modalAvatar}
-            />
-            <Text style={styles.modalName}>{selectedUser?.name}</Text>
-            <Text style={styles.modalEmail}>{selectedUser?.email}</Text>
-
-            {/* Instrumento (se existir) */}
-            {selectedUser?.instrumento && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
-                <MaterialCommunityIcons
-                  name={iconesInstrumentos[selectedUser.instrumento]?.name || 'music-note'}
-                  color={iconesInstrumentos[selectedUser.instrumento]?.color || '#495057'}
-                  size={24}
-                  style={{ marginRight: 8 }}
-                />
-                <Text style={{ fontSize: 16, color: '#333' }}>{selectedUser.instrumento}</Text>
-              </View>
-            )}
-
-            {/* Presenças e Eventos */}
-            {isAdmin && eventos.length > 0 && (
-              <View style={{ marginTop: 30, width: '100%' }}>
-                <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 6 }}>
-                  Presenças: {contarPresencasSim()}
-                </Text>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>
-                  Eventos passados
-                </Text>
-
-                {eventos.map((evento) => (
-                  <View
-                    key={evento.id}
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 16,
-                      padding: 12,
-                      backgroundColor: '#f0f0f0',
-                      borderRadius: 8,
-                    }}
-                  >
-                    <Text style={{ fontWeight: '600', flex: 1 }}>{evento.titulo}</Text>
-
-                    <View style={{ flexDirection: 'row', gap: 10 }}>
-                      <TouchableOpacity
-                        onPress={() => marcarPresenca(evento.id, 'sim')}
-                        style={{
-                          backgroundColor: presencasMembro[evento.id] === 'sim' ? 'green' : '#ddd',
-                          paddingVertical: 6,
-                          paddingHorizontal: 10,
-                          borderRadius: 6,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: presencasMembro[evento.id] === 'sim' ? 'white' : 'black',
-                          }}
-                        >
-                          ✔️
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => marcarPresenca(evento.id, 'nao')}
-                        style={{
-                          backgroundColor: presencasMembro[evento.id] === 'nao' ? 'red' : '#ddd',
-                          paddingVertical: 6,
-                          paddingHorizontal: 10,
-                          borderRadius: 6,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: presencasMembro[evento.id] === 'nao' ? 'white' : 'black',
-                          }}
-                        >
-                          ❌
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            )}
-
-
-          </View>
-        </Modalize>
-
       </View>
+
+      {/* Modal de detalhes do membro */}
+      <Modalize
+        ref={modalRef}
+        adjustToContentHeight={false}
+        snapPoint={500}
+        handleStyle={{ backgroundColor: '#ccc' }}
+        modalStyle={{ borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
+        onOpen={() => setModalOpen(true)}
+        onClosed={() => {
+          setModalOpen(false);
+          setSelectedUser(null);
+        }}
+        withReactModal
+      >
+        <View style={{ padding: 24, alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => modalRef.current?.close()} style={styles.closeButton}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+
+          <Image
+            source={{
+              uri: selectedUser?.image
+                ? `${selectedUser.image}?t=${Date.now()}`
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser?.name || '')}`,
+            }}
+            style={styles.modalAvatar}
+          />
+          <Text style={styles.modalName}>{selectedUser?.name}</Text>
+          <Text style={styles.modalEmail}>{selectedUser?.email}</Text>
+
+          {selectedUser?.instrumento && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16 }}>
+              <MaterialCommunityIcons
+                name={iconesInstrumentos[selectedUser.instrumento]?.name || 'music-note'}
+                color={iconesInstrumentos[selectedUser.instrumento]?.color || '#495057'}
+                size={24}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={{ fontSize: 16, color: '#333' }}>{selectedUser.instrumento}</Text>
+            </View>
+          )}
+
+          {isAdmin && eventos.length > 0 && (
+            <View style={{ marginTop: 30, width: '100%' }}>
+              <Text style={{ fontSize: 16, fontWeight: '600', marginBottom: 6 }}>
+                Presenças: {contarPresencasSim()}
+              </Text>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>
+                Eventos passados
+              </Text>
+
+              {eventos.map((evento) => (
+                <View
+                  key={evento.id}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 16,
+                    padding: 12,
+                    backgroundColor: '#f0f0f0',
+                    borderRadius: 8,
+                  }}
+                >
+                  <Text style={{ fontWeight: '600', flex: 1 }}>{evento.titulo}</Text>
+
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => marcarPresenca(evento.id, 'sim')}
+                      style={{
+                        backgroundColor: presencasMembro[evento.id] === 'sim' ? 'green' : '#ddd',
+                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: presencasMembro[evento.id] === 'sim' ? 'white' : 'black',
+                        }}
+                      >
+                        ✔️
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => marcarPresenca(evento.id, 'nao')}
+                      style={{
+                        backgroundColor: presencasMembro[evento.id] === 'nao' ? 'red' : '#ddd',
+                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                        borderRadius: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: presencasMembro[evento.id] === 'nao' ? 'white' : 'black',
+                        }}
+                      >
+                        ❌
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      </Modalize>
     </Animatable.View>
   );
+
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f2f2f2',
-    paddingTop: 60,
+    paddingTop: 20,
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 7,
+    marginRight:80,
     color:'#0e5cb3',
-    textAlign: 'center',
+    textAlign: 'right',
   },
 
   subtitle: {
@@ -445,4 +453,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  
+  banda: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 7,
+    color:'#40afd2',
+    textAlign: 'left',
+  },
+
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 7,
+  },
+
+  logo: {
+    width: 80,
+    height: 80,
+    marginRight: 0,
+    marginLeft:70,
+  },
+  headerContainer: {
+    backgroundColor: '#fff',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#dee2e6',
+  },
+
+
+
 });

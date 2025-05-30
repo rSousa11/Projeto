@@ -1,3 +1,4 @@
+//pagina do registo
 import colors from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -69,24 +70,21 @@ export default function Signup() {
 
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.azulescuro }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
+    <View style={{ flex: 1, backgroundColor: '#0e5cb3' }}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1 }}
         >
-          <View style={styles.container}>
-            <View style={styles.header}>
-              <Pressable 
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Ionicons name='arrow-back' size={24} color={colors.branco} />
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            style={{ backgroundColor: 'transparent' }}
+          >
+            <View style={styles.topBackground}>
+              <Pressable style={styles.backButton} onPress={() => router.back()}>
+                <Ionicons name='arrow-back' size={24} color={colors.azulescuro} />
               </Pressable>
-
               <Text style={styles.logoText}>
                 We<Text style={{ color: colors.azulbebe }}>Segno</Text>
               </Text>
@@ -136,60 +134,82 @@ export default function Signup() {
                 </Text>
               </Pressable>
             </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
+
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 34,
-    paddingBottom: 24,
-    backgroundColor: colors.azulescuro
-  },
-  header: {
+  topBackground: {
+    backgroundColor: '#0e5cb3',
+    paddingTop: 100,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
     alignItems: 'center',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 24,
+    left: 20,
+    backgroundColor: '#ffffffcc',
+    padding: 10,
+    borderRadius: 12,
+    zIndex: 2,
   },
   logoText: {
-    fontSize: 28,
+    fontSize: 55,
     fontWeight: 'bold',
     color: colors.branco,
-    marginBottom: 4,
+    letterSpacing: 1,
   },
   slogan: {
-    fontSize: 32,
-    color: colors.branco,
-    fontWeight: '300',
-    marginBottom: 34,
+    fontSize: 20,
+    color: '#d0d0d0',
+    fontStyle: 'italic',
+    marginTop: 8,
+    textAlign: 'center',
   },
   form: {
     flex: 1,
     backgroundColor: colors.branco,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 32,
-    paddingHorizontal: 20,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 36,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
   },
   label: {
-    color: colors.preto,
+    color: colors.azulescuro,
     marginBottom: 6,
-    fontWeight: '500',
+    fontWeight: '600',
     fontSize: 16,
+    marginLeft: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.azulclaro,
-    borderRadius: 12,
+    borderColor: '#ddd',
+    borderRadius: 14,
     marginBottom: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     fontSize: 16,
     backgroundColor: '#fff',
-    elevation: 2, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   button: {
     backgroundColor: colors.azulescuro,
@@ -197,21 +217,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    borderRadius: 12,
+    borderRadius: 14,
     marginTop: 10,
-    elevation: 3,
+    shadowColor: colors.azulescuro,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonText: {
     color: colors.branco,
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
-  backButton: {
-    position: 'absolute',
-    top: 0,
-    left: 14,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    padding: 8,
-    borderRadius: 10,
-  }
 });

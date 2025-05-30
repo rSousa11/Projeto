@@ -1,5 +1,6 @@
 import { iconesInstrumentos, instrumentosLista } from '@/constants/instrumentos';
 import { supabase } from '@/lib/supabase';
+import { decode } from 'base64-arraybuffer';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -48,9 +49,17 @@ export default function Profile() {
           tabBarStyle: modalOpen || editarPerfilOpen ? { display: 'none' } : undefined,
         });
       }
-    }, [modalOpen, editarPerfilOpen])
+      
+      // Forçar exibição da tab bar quando não há modais abertos
+      return () => {
+        if (parent && !modalOpen && !editarPerfilOpen) {
+          parent.setOptions({
+            tabBarStyle: undefined,
+          });
+        }
+      };
+    }, [modalOpen, editarPerfilOpen, navigation])
   );
-
   useEffect(() => {
     (async () => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,15 +76,36 @@ export default function Profile() {
       const user = data?.user;
       if (!user) return;
 
+      // Buscar dados adicionais da tabela users
+      const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (userError) {
+        console.log("Erro ao buscar dados do usuário:", userError);
+      }
+
+      // Processar image array - pegar apenas o primeiro item se for array
+      let imageUrl = '';
+      if (userData?.image) {
+        if (Array.isArray(userData.image)) {
+          imageUrl = userData.image[0] || '';
+        } else {
+          imageUrl = userData.image;
+        }
+      }
+
       setUserInfo({
         id: user.id,
-        name: user.user_metadata?.name || '',
+        name: userData?.name || user.user_metadata?.name || '',
         email: user.email || '',
-        role: user.user_metadata?.role || '',
-        image: user.user_metadata?.image || '',
-        instrumento: user.user_metadata?.instrumento || '',
+        role: userData?.role || user.user_metadata?.role || '',
+        image: imageUrl,
+        instrumento: userData?.instrumento || user.user_metadata?.instrumento || '',
       });
-      setInstrumento(user.user_metadata?.instrumento || '');
+      setInstrumento(userData?.instrumento || user.user_metadata?.instrumento || '');
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível obter os dados do utilizador.');
     } finally {
@@ -95,65 +125,80 @@ export default function Profile() {
     ]);
   };
 
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-    });
-
-    if (!result.canceled) {
-      const image = result.assets[0];
-      await uploadImage(image.uri);
-    }
-  };
-
-  const uploadImage = async (imageUri: string) => {
+  const pickAndUploadImage = async () => {
     try {
       setUploading(true);
-      const { data } = await supabase.auth.getUser();
-      const user = data?.user;
-      if (!user) return;
-
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      const contentType = blob.type;
-      const filename = `${user.id}_${Date.now()}.jpg`;
-      const filePath = filename; 
-
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, blob, {
-          contentType,
-          upsert: true,
-        });
-
-      if (uploadError) {
-        Alert.alert("Erro", "Erro ao enviar imagem para o Supabase.");
-        return;
-      }
-
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const publicURL = urlData?.publicUrl;
-      console.log("Public URL:", publicURL);
-
-
-      if (!publicURL) {
-        Alert.alert("Erro", "Não foi possível obter o URL da imagem.");
-        return;
-      }
-
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { ...user.user_metadata, image: publicURL },
+      
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
       });
 
-      if (metadataError) {
-        Alert.alert("Erro", "Erro ao atualizar os dados do utilizador.");
-      } else {
-        setUserInfo((prev) => prev ? { ...prev, image: publicURL } : null);
-        await fetchUserInfo(); // força atualização completa
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const image = result.assets[0];
+
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        if (!user) {
+          Alert.alert("Erro", "Utilizador não encontrado.");
+          return;
+        }
+
+        const fileExt = image.uri.split(".").pop() || "jpg";
+        const fileName = `${user.id}.${fileExt}`;
+
+        const getMimeType = (extension: string): string => {
+          const ext = extension.toLowerCase();
+          switch (ext) {
+            case 'jpg':
+            case 'jpeg':
+              return 'image/jpeg';
+            case 'png':
+              return 'image/png';
+            case 'gif':
+              return 'image/gif';
+            case 'webp':
+              return 'image/webp';
+            default:
+              return 'image/jpeg';
+          }
+        };
+
+        const mimeType = getMimeType(fileExt);
+        const path = `avatars/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(path, decode(image.base64 || ""), {
+            contentType: mimeType,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          Alert.alert("Erro", `Falha ao carregar imagem. ${uploadError.message}`);
+          return;
+        }
+
+        const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
+        const urlComTimestamp = `${publicUrl.publicUrl}?t=${Date.now()}`;
+
+        // Atualizar apenas na tabela users (NÃO mexer no auth)
+        const { error: updateError } = await supabase
+          .from("users")
+          .update({ image: [urlComTimestamp] })
+          .eq("id", user.id);
+
+        if (updateError) {
+          console.log("Erro ao atualizar tabela:", updateError);
+          Alert.alert("Erro", "Erro ao atualizar na base de dados.");
+          return;
+        }
+
+        // Atualizar o estado local
+        setUserInfo((prev) => prev ? { ...prev, image: urlComTimestamp } : null);
 
         Alert.alert("Sucesso", "Foto de perfil atualizada!");
       }
@@ -163,6 +208,7 @@ export default function Profile() {
       setUploading(false);
     }
   };
+
 
   const handleSelecionarInstrumento = async (inst: string) => {
     setInstrumento(inst);
@@ -297,10 +343,8 @@ export default function Profile() {
         </Modalize>
 
         <Animated.View entering={FadeIn.duration(400)} layout={SlideInUp} style={{ alignItems: 'center', paddingTop: 50 }}>
-          <TouchableOpacity onPress={handlePickImage} activeOpacity={0.8}>
-            
+          <TouchableOpacity onPress={pickAndUploadImage} activeOpacity={0.8}>
             <View>
-              
               <Image
                 source={
                   userInfo?.image && userInfo.image.startsWith('http')
@@ -308,16 +352,16 @@ export default function Profile() {
                     : require('@/assets/images/default-avatar.png')
                 }
                 style={{
-                  width: 130,
-                  height: 130,
-                  borderRadius: 65,
+                  width: 175,
+                  height: 175,
+                  borderRadius: 85,
                   borderWidth: 2,
                   borderColor: '#dee2e6',
                 }}
               />
               {uploading && (
                 <ActivityIndicator
-                  style={{ position: 'absolute', top: 45, left: 45 }}
+                  style={{ position: 'absolute', top: 80, left: 80 }}
                   size="large"
                   color="#495057"
                 />
