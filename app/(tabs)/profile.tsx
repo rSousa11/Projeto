@@ -185,7 +185,7 @@ export default function Profile() {
         const { data: publicUrl } = supabase.storage.from("avatars").getPublicUrl(path);
         const urlComTimestamp = `${publicUrl.publicUrl}?t=${Date.now()}`;
 
-        // Atualizar apenas na tabela users (NÃO mexer no auth)
+        // Atualizar apenas na tabela users 
         const { error: updateError } = await supabase
           .from("users")
           .update({ image: [urlComTimestamp] })

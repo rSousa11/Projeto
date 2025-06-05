@@ -179,7 +179,7 @@ const Repertorio = () => {
     // Espera um pouco para garantir que o estado foi atualizado
     setTimeout(() => {
       modalDetalhesRef.current?.open();
-    }, 100); // 100ms é suficiente para o React atualizar o estado
+    }, 100); 
   };
 
 
@@ -188,8 +188,8 @@ const Repertorio = () => {
     setTituloParaEditar(item.titulo);
     setAutorParaEditar(item.autor || '');
     setLinkParaEditar(item.link);
-    setNomeAtual(item.nome);     // novo
-    setUrlAtual(item.url);       // novo
+    setNomeAtual(item.nome);     
+    setUrlAtual(item.url);       
 
     
 
@@ -668,7 +668,7 @@ const Repertorio = () => {
 
             <TouchableOpacity
               onPress={() => {
-                setVoltarParaEditar(true); // marca que vieste do modalEditarRef
+                setVoltarParaEditar(true); 
                 modalEditarRef.current?.close();
                 setTimeout(() => {
                   modalNovoLinkRef.current?.open();
@@ -960,7 +960,7 @@ const Repertorio = () => {
                       titulo: tituloNovo.trim(),
                       autor: autorNovo.trim(),
                       link: linkNovo.trim() || null,
-                      nome: '', // Vazio porque não há ficheiro no Supabase
+                      nome: '', 
                       url: urlPdfNovo.trim(),
                       user_id: session.user.id,
                     });

@@ -45,7 +45,7 @@ export default function Signup() {
     const userId = signUpData.user?.id;
     console.log('Novo utilizador:', userId);
 
-    // 🆕 Adiciona email à tabela `users`
+    // Adiciona email à tabela `users`
     if (userId) {
       const { error: upsertError } = await supabase.from('users').upsert([
         {

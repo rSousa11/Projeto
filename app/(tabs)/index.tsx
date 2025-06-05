@@ -218,7 +218,7 @@ export default function Home() {
       <View style={styles.headerContainer}>
         <View style={styles.headerRow}>
           <Image
-            source={require('@/assets/images/frc.png')} // substitui com o caminho correto
+            source={require('@/assets/images/frc.png')} 
             style={styles.logo}
             resizeMode="contain"
           />
